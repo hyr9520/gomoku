@@ -1,0 +1,14 @@
+{
+  "name": "gomoku-online",
+  "version": "1.0.0",
+  "description": "联机五子棋 — 创建房间生成邀请链接,微信发给好友即可加入对战,支持自定义规则(棋盘大小/获胜条件/禁手/限时/悔棋)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "license": "MIT"
+}

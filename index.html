@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="description" content="联机五子棋 — 创建房间, 把链接发给微信好友即可开始对战">
+  <title>五子棋 · 联机对战</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23e9c27f'/%3E%3Ccircle cx='25' cy='27' r='9' fill='%23111'/%3E%3Ccircle cx='40' cy='38' r='9' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <div id="conn-banner">连接已断开, 正在重连…</div>
+
+  <!-- ============ 首页 ============ -->
+  <div id="screen-home" class="screen active">
+    <div class="home-box">
+      <div class="logo"><h1>五子棋</h1><div class="seal">弈</div></div>
+      <div class="slogan">连五而胜 · 微信发链接, 好友即点即战</div>
+
+      <div class="card">
+        <div class="opt">
+          <label>我的昵称</label>
+        </div>
+        <input type="text" id="name-input" maxlength="12" placeholder="给自己起个名字" autocomplete="off">
+      </div>
+
+      <button class="btn block" id="btn-create">创建房间</button>
+
+      <div class="card">
+        <h3>有邀请码? 加入房间</h3>
+        <div class="join-row">
+          <input type="text" id="code-input" maxlength="4" placeholder="邀请码">
+          <button class="btn" id="btn-join">加入</button>
+        </div>
+      </div>
+
+      <div class="card" id="rules-card">
+        <h3>对局规则 (房主可自定义)</h3>
+        <div class="opt"><label>棋盘</label>
+          <div class="seg" data-key="size">
+            <button data-v="13">13路</button><button data-v="15" class="on">15路</button><button data-v="19">19路</button>
+          </div>
+        </div>
+        <div class="opt"><label>获胜规则</label>
+          <div class="seg" data-key="mode">
+            <button data-v="free" class="on">自由(长连胜)</button><button data-v="exact">精确五连</button><button data-v="renju">连珠禁手</button>
+          </div>
+        </div>
+        <div class="opt"><label>我先手</label>
+          <div class="seg" data-key="first">
+            <button data-v="host" class="on">我执黑</button><button data-v="guest">对方执黑</button><button data-v="random">随机</button>
+          </div>
+        </div>
+        <div class="opt"><label>每步限时</label>
+          <div class="seg" data-key="timeLimit">
+            <button data-v="0" class="on">不限</button><button data-v="30">30秒</button><button data-v="60">60秒</button><button data-v="180">3分钟</button>
+          </div>
+        </div>
+        <div class="opt"><label>允许悔棋</label>
+          <div class="seg" data-key="undo">
+            <button data-v="1" class="on">允许</button><button data-v="0">不允许</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 房间 / 对局 ============ -->
+  <div id="screen-room" class="screen">
+    <div class="topbar">
+      <div class="room-chip"><span class="label">房间</span><span class="code" id="hud-code">····</span></div>
+      <button class="iconbtn" id="btn-share" title="分享邀请">🔗</button>
+      <button class="iconbtn" id="btn-sound" title="声音">🔊</button>
+      <button class="iconbtn" id="btn-exit" title="退出房间">✕</button>
+    </div>
+
+    <div class="players">
+      <div class="pcard" id="card-black">
+        <div class="stone-icon black"></div>
+        <div class="pinfo"><div class="pname">等待加入</div><div class="psub">黑先</div></div>
+        <div class="ptimer off">--</div>
+      </div>
+      <div class="pcard" id="card-white">
+        <div class="stone-icon white"></div>
+        <div class="pinfo"><div class="pname">等待加入</div><div class="psub">白后</div></div>
+        <div class="ptimer off">--</div>
+      </div>
+    </div>
+
+    <div class="statusbar" id="statusbar">&nbsp;</div>
+
+    <div class="board-wrap">
+      <canvas id="board"></canvas>
+
+      <!-- 等待开局覆盖层 -->
+      <div class="overlay show" id="ov-wait">
+        <div class="panel">
+          <div class="sharehint">把房间发给微信好友, 点开即战</div>
+          <div class="bigcode" id="wait-code">····</div>
+          <div class="linkbox">
+            <div class="link" id="invite-link">…</div>
+            <button class="btn small" id="btn-copy">复制</button>
+          </div>
+          <button class="btn small ghost block" id="btn-more-share">更多分享方式 / 二维码</button>
+          <div id="qr-area" style="display:none">
+            <canvas id="qr-img" width="180" height="180"></canvas>
+            <div class="sharehint">微信「扫一扫」加入对局</div>
+          </div>
+          <div class="seatrow">
+            <div class="seat" id="seat-host"><div class="stone-icon black" style="visibility:hidden"></div><div class="name">房主</div><div class="who">—</div></div>
+            <div class="seat" id="seat-guest"><div class="stone-icon black" style="visibility:hidden"></div><div class="name">玩家</div><div class="who">虚位以待</div></div>
+          </div>
+          <div class="rule-summary" id="rule-summary"></div>
+          <button class="btn block gold" id="btn-start" disabled>开始对局</button>
+          <div class="rematch-state" id="wait-hint"></div>
+        </div>
+      </div>
+
+      <!-- 结算覆盖层 -->
+      <div class="overlay" id="ov-result">
+        <div class="panel">
+          <div class="result-title" id="result-title">胜利</div>
+          <div class="result-sub" id="result-sub"></div>
+          <div class="btnrow">
+            <button class="btn ghost" id="btn-back-home">返回首页</button>
+            <button class="btn" id="btn-rematch">再来一局</button>
+          </div>
+          <div class="rematch-state" id="rematch-state"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn ghost" id="btn-undo">悔棋</button>
+      <button class="btn ghost" id="btn-draw">求和</button>
+      <button class="btn ghost" id="btn-resign">认输</button>
+    </div>
+  </div>
+
+  <!-- 通用对话框 -->
+  <div id="modal">
+    <div class="panel">
+      <div class="m-title" id="m-title"></div>
+      <div class="m-body" id="m-body"></div>
+      <div class="btnrow" id="m-btns"></div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="/qrcode.js"></script>
+  <script src="/rules.js"></script>
+  <script src="/board.js"></script>
+  <script src="/sound.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
