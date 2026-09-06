@@ -6,7 +6,7 @@
   <meta name="description" content="联机五子棋 — 创建房间, 把链接发给微信好友即可开始对战">
   <title>五子棋 · 联机对战</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23e9c27f'/%3E%3Ccircle cx='25' cy='27' r='9' fill='%23111'/%3E%3Ccircle cx='40' cy='38' r='9' fill='%23fff'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/style.css?v=7">
 </head>
 <body>
 
@@ -14,6 +14,11 @@
 
   <!-- ============ 首页 ============ -->
   <div id="screen-home" class="screen active">
+    <div class="float-stones">
+      <div class="stone-icon black fs1"></div>
+      <div class="stone-icon white fs2"></div>
+      <div class="stone-icon black fs3"></div>
+    </div>
     <div class="home-box">
       <div class="logo"><h1>五子棋</h1><div class="seal">弈</div></div>
       <div class="slogan">连五而胜 · 微信发链接, 好友即点即战</div>
@@ -25,7 +30,13 @@
         <input type="text" id="name-input" maxlength="12" placeholder="给自己起个名字" autocomplete="off">
       </div>
 
-      <button class="btn block" id="btn-create">创建房间</button>
+      <button class="btn block" id="btn-create">创建房间 · 联机对战</button>
+
+      <div class="mode-row">
+        <button class="btn gold" id="btn-ai">🤖 人机对战</button>
+        <button class="btn ghost" id="btn-hot">👥 双人同屏</button>
+      </div>
+      <button class="btn ghost block" id="btn-puzzle">🧩 残局挑战</button>
 
       <div class="card">
         <h3>有邀请码? 加入房间</h3>
@@ -36,7 +47,12 @@
       </div>
 
       <div class="card" id="rules-card">
-        <h3>对局规则 (房主可自定义)</h3>
+        <h3>对局设置 (房主可自定义)</h3>
+        <div class="opt"><label>电脑棋力</label>
+          <div class="seg seg-ai" data-key="ailv">
+            <button data-v="easy">简单</button><button data-v="normal" class="on">普通</button><button data-v="hard">困难</button>
+          </div>
+        </div>
         <div class="opt"><label>棋盘</label>
           <div class="seg" data-key="size">
             <button data-v="13">13路</button><button data-v="15" class="on">15路</button><button data-v="19">19路</button>
@@ -68,21 +84,29 @@
 
   <!-- ============ 房间 / 对局 ============ -->
   <div id="screen-room" class="screen">
-    <div class="topbar">
-      <div class="room-chip"><span class="label">房间</span><span class="code" id="hud-code">····</span></div>
+    <div class="topbar" style="position:relative">
+      <div class="room-chip"><span class="label" id="chip-label">房间</span><span class="code" id="hud-code">····</span></div>
       <button class="iconbtn" id="btn-share" title="分享邀请">🔗</button>
-      <button class="iconbtn" id="btn-sound" title="声音">🔊</button>
+      <button class="iconbtn" id="btn-sound" title="声音设置">🔊</button>
       <button class="iconbtn" id="btn-exit" title="退出房间">✕</button>
+      <div id="sound-pop">
+        <div class="sp-row"><span>🔊 音效</span><button class="sp-toggle on" id="sp-sfx">开</button></div>
+        <input type="range" id="vol-sfx" min="0" max="100" value="80">
+        <div class="sp-row"><span>🎵 音乐</span><button class="sp-toggle on" id="sp-music">开</button></div>
+        <div class="sp-row" id="sp-style-row"><span>🎼 风格</span><span class="sp-seg"><button data-v="calm" class="on">宁静</button><button data-v="bright">轻快</button></span></div>
+        <input type="range" id="vol-music" min="0" max="100" value="40">
+        <div class="sp-hint">程序生成氛围曲 · 配置自动保存</div>
+      </div>
     </div>
 
     <div class="players">
       <div class="pcard" id="card-black">
-        <div class="stone-icon black"></div>
+        <div class="stone-wrap"><div class="ring"></div><div class="stone-icon black"></div></div>
         <div class="pinfo"><div class="pname">等待加入</div><div class="psub">黑先</div></div>
         <div class="ptimer off">--</div>
       </div>
       <div class="pcard" id="card-white">
-        <div class="stone-icon white"></div>
+        <div class="stone-wrap"><div class="ring"></div><div class="stone-icon white"></div></div>
         <div class="pinfo"><div class="pname">等待加入</div><div class="psub">白后</div></div>
         <div class="ptimer off">--</div>
       </div>
@@ -92,11 +116,13 @@
 
     <div class="board-wrap">
       <canvas id="board"></canvas>
+      <canvas id="fx"></canvas>
 
       <!-- 等待开局覆盖层 -->
       <div class="overlay show" id="ov-wait">
         <div class="panel">
           <div class="sharehint">把房间发给微信好友, 点开即战</div>
+          <div class="ov-deco"></div>
           <div class="bigcode" id="wait-code">····</div>
           <div class="linkbox">
             <div class="link" id="invite-link">…</div>
@@ -119,7 +145,8 @@
 
       <!-- 结算覆盖层 -->
       <div class="overlay" id="ov-result">
-        <div class="panel">
+        <div class="panel" style="position:relative">
+          <div class="result-stamp" id="result-stamp">胜</div>
           <div class="result-title" id="result-title">胜利</div>
           <div class="result-sub" id="result-sub"></div>
           <div class="btnrow">
@@ -150,9 +177,11 @@
   <div id="toast"></div>
 
   <script src="/qrcode.js"></script>
-  <script src="/rules.js"></script>
-  <script src="/board.js"></script>
-  <script src="/sound.js"></script>
-  <script src="/app.js"></script>
+  <script src="/rules.js?v=7"></script>
+  <script src="/ai.js?v=7"></script>
+  <script src="/puzzle.js?v=7"></script>
+  <script src="/board.js?v=7"></script>
+  <script src="/sound.js?v=7"></script>
+  <script src="/app.js?v=7"></script>
 </body>
 </html>

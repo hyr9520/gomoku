@@ -1,30 +1,44 @@
 /*
- * 前端主逻辑: WebSocket 通信 / 房间流程 / 界面渲染 / 微信分享
+ * 前端主逻辑 v3
+ *
+ * 模式:
+ *   online  — 联机对战 (服务端权威, 全量快照驱动, 即时预览子)
+ *   local   — 单机模式, S.local.kind 区分:
+ *     ai      — 人机对战 (三档棋力)
+ *     hotseat — 双人同屏 (轮流落子)
+ *     puzzle  — 残局挑战 (致胜一子/化解杀着, 关卡制)
  */
 (function () {
   'use strict';
 
   const GR = window.GomokuRules;
+  const AIE = window.GomokuAI;
+  const PZ = window.GomokuPuzzle;
   const $ = (id) => document.getElementById(id);
 
   // ---------- 状态 ----------
-  // token 存 sessionStorage: 刷新不丢, 但同一浏览器的多个标签页各自独立身份 (可双开对垒)
   const S = {
+    mode: 'online',        // 'online' | 'local'
+    local: null,           // {kind, rules, board, moves, playerColor, aiColor, over, result, winLine, turn, gen, puzzle, challenge}
     ws: null,
     wsOk: false,
     retry: 0,
     retryTimer: null,
-    room: null,          // 最新快照
+    room: null,
     token: sessionStorage.getItem('gomoku.token') || null,
-    pendingJoin: null,   // 从链接进入时待加入的房间码
+    pendingJoin: null,
     serverOffset: 0,
     overAnnounced: false,
-    lanLink: null,       // 本机为 localhost 时, 可分享的局域网链接
-    inviteBase: null     // 实际用于分享的链接
+    resultTimer: null,
+    resultShown: false,
+    lanLink: null,
+    inviteBase: null,
+    pending: new Map()     // 联机: 已点未确认的落子 idx -> 1|2
   };
-  const outbox = [];     // 连接建立前发出的指令, 连上后补发
+  const outbox = [];
 
-  const board = new GomokuBoard($('board'));
+  const board = new GomokuBoard($('board'), $('fx'));
+  function strHash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0; return Math.abs(h) + 1; }
 
   // ---------- 工具 ----------
   let toastTimer = null;
@@ -35,6 +49,8 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => el.classList.remove('show'), ms || 2200);
   }
+
+  function vibrate(ms) { if (navigator.vibrate) { try { navigator.vibrate(ms); } catch (e) { } } }
 
   function showModal(title, body, buttons) {
     $('m-title').textContent = title;
@@ -56,22 +72,47 @@
     for (const s of ['home', 'room']) $('screen-' + s).classList.toggle('active', s === name);
   }
 
+  function isLocal() { return S.mode === 'local'; }
+  function kind() { return isLocal() && S.local ? S.local.kind : null; }
+
   function send(obj) {
+    if (S.mode !== 'online') return false;
     if (S.ws && S.wsOk) { S.ws.send(JSON.stringify(obj)); return true; }
     outbox.push(obj);
     return false;
   }
 
-  function flushOutbox() {
-    while (outbox.length) S.ws.send(JSON.stringify(outbox.shift()));
-  }
+  function flushOutbox() { while (outbox.length) S.ws.send(JSON.stringify(outbox.shift())); }
 
   function banner(on) { $('conn-banner').classList.toggle('show', on); }
+
+  function exitToHome() {
+    if (S.aiTimer) { clearTimeout(S.aiTimer); S.aiTimer = null; }
+    S.mode = 'online';
+    S.local = null;
+    S.room = null;
+    S.pending.clear();
+    board.clear();
+    hideModal();
+    showScreen('home');
+  }
+
+  function leaveOnline() {
+    S.mode = 'online';
+    S.room = null;
+    S.token = null;
+    sessionStorage.removeItem('gomoku.token');
+    S.pending.clear();
+    board.clear();
+    hideModal();
+    showScreen('home');
+    banner(false);
+  }
 
   // ---------- 规则选项 ----------
   function readRules() {
     const rules = {};
-    for (const seg of document.querySelectorAll('.seg')) {
+    for (const seg of document.querySelectorAll('.seg:not(.seg-ai)')) {
       const on = seg.querySelector('button.on');
       if (!on) continue;
       const k = seg.dataset.key, v = on.dataset.v;
@@ -81,6 +122,11 @@
       else rules[k] = v;
     }
     return rules;
+  }
+
+  function readAiLevel() {
+    const on = document.querySelector('.seg-ai button.on');
+    return (on && on.dataset.v) || 'normal';
   }
 
   function ruleSummary(rules) {
@@ -116,7 +162,7 @@
     };
     ws.onclose = () => {
       S.wsOk = false;
-      banner(true);
+      if (S.mode === 'online') banner(true);
       scheduleReconnect();
     };
     ws.onerror = () => { try { ws.close(); } catch (e) { } };
@@ -130,15 +176,14 @@
 
   function onReady() {
     if (S.pendingJoin) {
-      // 从邀请链接进入 (页面刷新后 token 仍在, 服务端会识别原座位)
       send({ t: 'join', code: S.pendingJoin, name: myName(), token: S.token });
     } else if (S.token) {
-      // 刷新后直接恢复进行中的对局
       send({ t: 'resume', token: S.token });
     }
   }
 
   function handleMsg(msg) {
+    if (S.mode !== 'online') return;
     switch (msg.t) {
       case 'created':
       case 'joined':
@@ -150,6 +195,9 @@
         S.pendingJoin = null;
         S.room = msg.room;
         S.overAnnounced = false;
+        S.resultShown = false;
+        if (S.resultTimer) { clearTimeout(S.resultTimer); S.resultTimer = null; }
+        board.setWoodSeed(strHash(S.room.code));
         prepareInvite();
         showScreen('room');
         renderRoom();
@@ -163,7 +211,6 @@
         break;
       case 'error':
         if (msg.msg === '会话已过期') {
-          // 无声清理过期 token, 停留首页
           S.token = null;
           sessionStorage.removeItem('gomoku.token');
           break;
@@ -172,25 +219,15 @@
         break;
       case 'room_closed':
         toast(msg.msg || '房间已关闭');
-        leaveLocal();
+        leaveOnline();
         break;
       case 'replaced':
         toast('本房间已在其他页面打开');
-        leaveLocal();
+        leaveOnline();
         break;
       case 'pong':
         break;
     }
-  }
-
-  function leaveLocal() {
-    S.room = null;
-    S.token = null;
-    sessionStorage.removeItem('gomoku.token');
-    board.clear();
-    hideModal();
-    showScreen('home');
-    banner(false);
   }
 
   // ---------- 分享 ----------
@@ -198,10 +235,9 @@
 
   function prepareInvite() {
     S.inviteBase = location.origin + '/r/' + (S.room ? S.room.code : '');
-    // 本机通过 localhost 打开时, 局域网地址才是好友可用的链接
     if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
       fetch('/info').then(r => r.json()).then(info => {
-        if (info.ips && info.ips.length) {
+        if (info.ips && info.ips.length && S.room) {
           S.lanLink = 'http://' + info.ips[0] + ':' + info.port + '/r/' + S.room.code;
           S.inviteBase = S.lanLink;
           renderShare();
@@ -212,10 +248,12 @@
   }
 
   function renderShare() {
-    const link = inviteUrl();
-    $('invite-link').textContent = link;
-    $('wait-code').textContent = S.room ? S.room.code : '····';
-    $('hud-code').textContent = S.room ? S.room.code : '····';
+    const kindLabel = { ai: '人机', hotseat: '同屏', puzzle: '残局' }[kind()] || null;
+    $('invite-link').textContent = inviteUrl();
+    $('wait-code').textContent = S.room ? (isLocal() ? kindLabel : S.room.code) : '····';
+    $('hud-code').textContent = S.room ? (isLocal() ? kindLabel : S.room.code) : '····';
+    $('chip-label').textContent = isLocal() ? '模式' : '房间';
+    $('btn-share').style.display = isLocal() ? 'none' : '';
   }
 
   function copyText(text, ok) {
@@ -259,25 +297,439 @@
     }
   }
 
+  // ---------- 单机: 人机 / 双人同屏 ----------
+  const AI_NAME = { easy: '电脑 · 简单', normal: '电脑 · 普通', hard: '电脑 · 困难' };
+
+  function startLocalGame(kind, playerColor) {
+    const rules = readRules();
+    if (S.aiTimer) { clearTimeout(S.aiTimer); S.aiTimer = null; }
+    S.mode = 'local';
+    S.pending.clear();
+    S.local = {
+      kind,
+      rules: { size: rules.size, mode: rules.mode, undo: rules.undo },
+      board: GR.newBoard(rules.size),
+      moves: [],
+      playerColor: kind === 'hotseat' ? 'black' : playerColor,
+      aiColor: kind === 'ai' ? (playerColor === 'black' ? 'white' : 'black') : null,
+      over: false, result: null, winLine: null,
+      turn: 'black',
+      gen: (S.local ? S.local.gen : 0) + 1,
+      puzzle: null, challenge: null
+    };
+    board.setWoodSeed(strHash(kind + '-' + Date.now()));
+    S.room = localSnapshot();
+    S.overAnnounced = false;
+    S.resultShown = false;
+    if (S.resultTimer) { clearTimeout(S.resultTimer); S.resultTimer = null; }
+    showScreen('room');
+    renderRoom();
+    if (S.local.kind === 'ai' && S.local.turn === S.local.aiColor) scheduleAI();
+  }
+
+  function localSnapshot() {
+    const L = S.local;
+    const lv = readAiLevel();
+    const base = {
+      code: { ai: '人机对战', hotseat: '双人同屏', puzzle: '残局挑战' }[L.kind],
+      rules: { size: L.rules.size, mode: L.rules.mode, first: 'host', timeLimit: 0, undo: L.rules.undo },
+      state: L.over ? 'over' : 'playing',
+      colors: { black: 'host', white: 'guest' },
+      board: Array.from(L.board),
+      moves: L.moves.map(m => ({ x: m.x, y: m.y, c: m.c })),
+      turn: L.turn,
+      deadline: null, now: Date.now(),
+      result: L.result, winLine: L.winLine,
+      drawOffer: null, undoReq: null,
+      rematch: { black: false, white: false },
+      you: 'host', youColor: L.kind === 'hotseat' ? null : L.playerColor
+    };
+    if (L.kind === 'ai') {
+      base.players = {
+        host: { name: myName() || '我', connected: true },
+        guest: { name: AI_NAME[lv] || '电脑', connected: true }
+      };
+    } else if (L.kind === 'hotseat') {
+      base.players = {
+        host: { name: myName() || '玩家甲', connected: true },
+        guest: { name: '玩家乙', connected: true }
+      };
+    } else {
+      base.players = {
+        host: { name: myName() || '挑战者', connected: true },
+        guest: { name: '残局 · 第 ' + L.puzzle.level + ' 关', connected: true }
+      };
+    }
+    return base;
+  }
+
+  function finishLocalMove() {
+    const L = S.local;
+    const n = L.rules.size;
+    const last = L.moves[L.moves.length - 1];
+    const win = GR.checkWin(L.board, n, last.x, last.y, last.c, { mode: L.rules.mode });
+    if (win.win) {
+      L.over = true;
+      L.result = { winner: last.c === 1 ? 'black' : 'white', reason: 'five' };
+      L.winLine = win.line;
+    } else if (L.moves.length === n * n) {
+      L.over = true;
+      L.result = { winner: 'draw', reason: 'board-full' };
+    } else {
+      L.turn = L.turn === 'black' ? 'white' : 'black';
+    }
+    S.room = localSnapshot();
+    renderRoom();
+  }
+
+  function applyLocalMove(x, y) {
+    const L = S.local;
+    if (!L || L.over || (L.kind === 'ai' && L.turn === L.aiColor)) return false;
+    const n = L.rules.size;
+    if (L.board[GR.idx(x, y, n)] !== 0) return false;
+    if (L.rules.mode === 'renju' && L.turn === 'black' &&
+        GR.isForbiddenPoint(L.board, n, x, y)) return false;
+    const c = L.turn === 'black' ? 1 : 2;
+    L.board[GR.idx(x, y, n)] = c;
+    L.moves.push({ x, y, c });
+    finishLocalMove();
+    return true;
+  }
+
+  function scheduleAI() {
+    const L = S.local;
+    if (!L || L.over || L.kind !== 'ai' || L.turn !== L.aiColor) return;
+    const gen = L.gen;
+    const level = readAiLevel();
+    const color = L.turn === 'black' ? 1 : 2;
+    S.aiTimer = setTimeout(() => {
+      if (S.aiTimer) { clearTimeout(S.aiTimer); S.aiTimer = null; }
+      if (!S.local || S.local.gen !== gen || S.local.over || S.local.turn !== L.aiColor) return;
+      const mv = AIE.bestMove(S.local.board, S.local.rules.size, color, { mode: S.local.rules.mode }, level);
+      if (mv && S.local && S.local.gen === gen && !S.local.over && S.local.turn === L.aiColor) {
+        const n = L.rules.size;
+        L.board[GR.idx(mv.x, mv.y, n)] = color;
+        L.moves.push({ x: mv.x, y: mv.y, c: color });
+        finishLocalMove();
+      }
+    }, 420 + Math.random() * 480);
+  }
+
+  function localUndo() {
+    const L = S.local;
+    if (!L || L.over || !L.rules.undo) return;
+    if (S.aiTimer) { clearTimeout(S.aiTimer); S.aiTimer = null; }
+    if (L.kind === 'hotseat') {
+      L.moves.pop();
+    } else {
+      let pops = 0;
+      while (L.moves.length > 0 && pops < 2) {
+        const last = L.moves.pop();
+        pops++;
+        if ((last.c === 1 ? 'black' : 'white') === L.playerColor) break;
+      }
+    }
+    L.board = GR.newBoard(L.rules.size);
+    for (const m of L.moves) L.board[GR.idx(m.x, m.y, L.rules.size)] = m.c;
+    L.turn = L.moves.length === 0 ? 'black' : (L.moves[L.moves.length - 1].c === 1 ? 'white' : 'black');
+    S.room = localSnapshot();
+    renderRoom();
+    if (L.kind === 'ai' && L.turn === L.aiColor) scheduleAI();
+  }
+
+  // ---------- 单机: 残局挑战 ----------
+  function startPuzzle(level, score, hearts) {
+    if (S.aiTimer) { clearTimeout(S.aiTimer); S.aiTimer = null; }
+    const p = PZ.generate(level);
+    S.mode = 'local';
+    S.pending.clear();
+    const stones = [];
+    for (let y = 0; y < p.n; y++) {
+      for (let x = 0; x < p.n; x++) {
+        const v = p.board[y * p.n + x];
+        if (v) stones.push({ x, y, c: v });
+      }
+    }
+    S.local = {
+      kind: 'puzzle',
+      rules: { size: p.n, mode: 'free', undo: false },
+      board: p.board.slice(),
+      moves: stones,
+      playerColor: p.color === 1 ? 'black' : 'white',
+      aiColor: null,
+      over: false, result: null, winLine: null,
+      turn: p.color === 1 ? 'black' : 'white',
+      gen: (S.local ? S.local.gen : 0) + 1,
+      puzzle: {
+        level, type: p.type, color: p.color, solution: p.solution,
+        depth: p.depth || 1, left: p.depth || 1, locked: false,
+        hearts: hearts === undefined ? 3 : hearts,
+        hint: null
+      },
+      challenge: { score: score || 0, best: Number(localStorage.getItem('gomoku.puzzleBest') || 0) }
+    };
+    board.setWoodSeed(strHash('puzzle-' + level));
+    S.room = localSnapshot();
+    S.overAnnounced = false;
+    S.resultShown = false;
+    if (S.resultTimer) { clearTimeout(S.resultTimer); S.resultTimer = null; }
+    showScreen('room');
+    renderRoom();
+  }
+
+  function puzzleSolved(passed) {
+    const L = S.local;
+    const P = L.puzzle;
+    if (passed) {
+      L.challenge.score++;
+      P.hearts = Math.min(3, P.hearts + 1);
+      board.celebrate();
+      Sound.play('notify');
+    } else {
+      L.challenge.best = Math.max(L.challenge.best, L.challenge.score);
+      localStorage.setItem('gomoku.puzzleBest', String(L.challenge.best));
+      L.over = true;
+      L.result = { winner: null, reason: 'challenge-end' };
+      S.room = localSnapshot();
+      renderRoom();
+    }
+  }
+
+  function pzFindWins(colorNum) {
+    const L = S.local;
+    const n = L.rules.size;
+    return PZ.findWins(L.board, colorNum).map(i => ({ idx: i, x: i % n, y: Math.floor(i / n) }));
+  }
+
+  function puzzleFail(msg) {
+    const L = S.local;
+    const P = L.puzzle;
+    vibrate(60);
+    Sound.play('bad');
+    P.locked = false;
+    const cv = $('board');
+    cv.classList.remove('shake');
+    void cv.offsetWidth;
+    cv.classList.add('shake');
+    P.hearts--;
+    if (P.hearts <= 0) { puzzleSolved(false); return; }
+    toast(msg + ' (' + P.hearts + ' 次机会)');
+    S.room = localSnapshot();
+    renderRoom();
+  }
+
+  function puzzleTap(x, y) {
+    const L = S.local;
+    const P = L.puzzle;
+    if (P.locked) return;
+    const n = L.rules.size;
+    const idx = GR.idx(x, y, n);
+    if (L.board[idx] !== 0) { toast('这里已有棋子'); return; }
+    const cNum = P.color;
+    const defender = cNum === 1 ? 2 : 1;
+
+    if (P.type === 'win') {
+      L.board[idx] = cNum; L.moves.push({ x, y, c: cNum });
+      finishLocalMove();            // 成五 → 金线彩带 → 结算"通过"
+      puzzleSolved(true);
+      return;
+    }
+    if (P.type === 'block') {
+      L.board[idx] = cNum; L.moves.push({ x, y, c: cNum });
+      L.over = true;
+      L.result = { winner: null, reason: 'puzzle-pass' };
+      puzzleSolved(true);
+      S.room = localSnapshot();
+      renderRoom();
+      return;
+    }
+
+    if (P.type === 'double4') {
+      if (idx !== P.solution) { puzzleFail('这不是一子双杀点'); return; }
+      L.board[idx] = cNum; L.moves.push({ x, y, c: cNum });
+      renderRoom();
+      P.locked = true;
+      const gen = L.gen;
+      const wins = pzFindWins(cNum);
+      setTimeout(() => {                                   // 对手封堵一处
+        if (!S.local || S.local.gen !== gen) return;
+        L.board[wins[0].y * n + wins[0].x] = defender;
+        L.moves.push({ x: wins[0].x, y: wins[0].y, c: defender });
+        Sound.play('place');
+        renderRoom();
+        setTimeout(() => {                                 // 另一处成五
+          if (!S.local || S.local.gen !== gen) return;
+          L.board[wins[1].y * n + wins[1].x] = cNum;
+          L.moves.push({ x: wins[1].x, y: wins[1].y, c: cNum });
+          finishLocalMove();
+          puzzleSolved(true);
+        }, 650);
+      }, 650);
+      return;
+    }
+
+    // 连续冲四 (vcf): 每手都必须冲四或成五, 电脑自动防守
+    L.board[idx] = cNum; L.moves.push({ x, y, c: cNum });
+    if (GR.checkWin(L.board, n, x, y, cNum, { mode: 'free' }).win) {
+      finishLocalMove();
+      puzzleSolved(true);
+      return;
+    }
+    const wins = pzFindWins(cNum);
+    if (wins.length === 0) {
+      // 非强制手: 撤回并判失败
+      L.board[idx] = 0; L.moves.pop();
+      puzzleFail('这手没有形成冲四');
+      return;
+    }
+    if (wins.length >= 2) {
+      // 双四无解 → 自动收官
+      P.locked = true;
+      const gen = L.gen;
+      setTimeout(() => {
+        if (!S.local || S.local.gen !== gen) return;
+        L.board[wins[0].y * n + wins[0].x] = defender;
+        L.moves.push({ x: wins[0].x, y: wins[0].y, c: defender });
+        renderRoom();
+        setTimeout(() => {
+          if (!S.local || S.local.gen !== gen) return;
+          L.board[wins[1].y * n + wins[1].x] = cNum;
+          L.moves.push({ x: wins[1].x, y: wins[1].y, c: cNum });
+          finishLocalMove();
+          puzzleSolved(true);
+        }, 650);
+      }, 600);
+      return;
+    }
+    // 单四: 对手被迫封堵, 继续冲四
+    P.left--;
+    if (P.left < 0) {
+      L.board[idx] = 0; L.moves.pop();
+      P.left = P.depth;
+      puzzleFail('手数已用尽, 冲四路线中断');
+      return;
+    }
+    const gen = L.gen;
+    const w = wins[0];
+    P.locked = true;
+    setTimeout(() => {
+      if (!S.local || S.local.gen !== gen) return;
+      L.board[w.y * n + w.x] = defender;
+      L.moves.push({ x: w.x, y: w.y, c: defender });
+      Sound.play('place');
+      if (GR.checkWin(L.board, n, w.x, w.y, defender, { mode: 'free' }).win) {
+        // 对手封堵顺手反杀 → 此路不通, 整段撤回
+        L.board[w.y * n + w.x] = 0; L.moves.pop();
+        L.board[idx] = 0; L.moves.pop();
+        P.left = P.depth;
+        P.locked = false;
+        puzzleFail('对手反杀! 这条路线不通');
+        return;
+      }
+      P.locked = false;
+      renderRoom();
+    }, 620);
+  }
+
+  function puzzleHint() {
+    const L = S.local;
+    const P = L.puzzle;
+    if (P.hearts <= 1) { toast('至少保留 1 颗心才能用提示'); Sound.play('bad'); return; }
+    P.hearts--;
+    P.hint = { x: P.solution % L.rules.size, y: Math.floor(P.solution / L.rules.size) };
+    Sound.play('hint');
+    S.room = localSnapshot();
+    renderRoom();
+    toast('提示已点亮 (消耗 1 颗心)');
+  }
+
+  // ---------- 威胁提示 (冲四/活四/双活三/四三) ----------
+  // 扫描刚落的最后一手在各方向形成的威胁, 返回 {kind, cells} 或 null
+  function scanThreats(board, n, x, y, color) {
+    const num = color === 'black' ? 1 : 2;
+    const DIRS4 = [[1, 0], [0, 1], [1, 1], [1, -1]];
+    const cells = new Set();
+    let fours = 0, threes = 0, openFour = false;
+    for (const [dx, dy] of DIRS4) {
+      let str = '';
+      for (let o = -4; o <= 4; o++) {
+        const i = x + dx * o, j = y + dy * o;
+        if (i < 0 || j < 0 || i >= n || j >= n) { str += 'X'; continue; }
+        const v = board[j * n + i];
+        str += v === 0 ? '.' : (v === num ? 'O' : 'X');
+      }
+      // str[4] 为落点; 含落点的 5 窗口: 4 子 + 1 空 → 冲四/活四
+      let four = false;
+      for (let k = 0; k <= 4; k++) {
+        const w = str.slice(k, k + 5);
+        if (w[4 - k] !== 'O') continue;
+        const oCnt = (w.match(/O/g) || []).length;
+        if (oCnt === 4 && w.includes('.')) {
+          four = true;
+          if (str[k - 1] === '.' && str[k + 5] === '.') openFour = true;
+          for (let m = 0; m < 5; m++) {
+            if (w[m] === 'O') cells.add((y + dy * (k + m)) * n + (x + dx * (k + m)));
+          }
+        }
+      }
+      if (four) { fours++; continue; }
+      // 活三: .OOO. 含落点
+      for (let k = 1; k <= 3; k++) {
+        if (str.slice(k, k + 5) === '.OOO.') {
+          threes++;
+          for (let m = 1; m <= 3; m++) cells.add((y + dy * (k + m)) * n + (x + dx * (k + m)));
+          break;
+        }
+      }
+    }
+    let kind = null;
+    if (fours >= 1 && threes >= 1) kind = '⚠ 四三!';
+    else if (fours >= 2) kind = '⚠ 双四!';
+    else if (threes >= 2) kind = '⚠ 三三!';
+    else if (openFour) kind = '⚠ 活四!';
+    else if (fours === 1) kind = '⚠ 冲四!';
+    return kind ? { kind, cells: [...cells] } : null;
+  }
+
   // ---------- 渲染 ----------
   function renderRoom() {
     const room = S.room;
     if (!room) return;
     renderShare();
 
-    const myColor = room.youColor;                    // 'black'|'white'|null
+    const myColor = room.youColor;
     const mySeat = room.you === 'spectator' ? null : room.you;
     const amPlaying = mySeat && (room.colors.black === mySeat || room.colors.white === mySeat);
     const oppSeat = mySeat ? (mySeat === 'host' ? 'guest' : 'host') : null;
+    const kd = kind();
 
-    // 玩家卡片
     renderCard('card-black', 'black', room);
     renderCard('card-white', 'white', room);
 
     // 状态条
     const bar = $('statusbar');
-    bar.classList.remove('muted');
-    if (room.state === 'waiting') {
+    bar.classList.remove('muted', 'thinking');
+    if (isLocal() && kd === 'puzzle') {
+      const P = S.local.puzzle;
+      if (room.state === 'over') {
+        bar.textContent = room.result && room.result.reason !== 'challenge-end' ? '✓ 通过!' : '挑战结束';
+        bar.classList.add('muted');
+      } else {
+        const typeText = {
+          win: '致胜一子:落子连五', block: '化解杀着:堵住对手',
+          double4: '一子双杀:一手形成双四', vcf: '连续冲四:每手都要冲四'
+        }[P.type];
+        bar.textContent = '第 ' + P.level + ' 关 · ' + typeText +
+          (P.type === 'vcf' ? ' · 剩 ' + P.left + ' 手' : '') +
+          ' · ' + ('❤'.repeat(P.hearts) || '💔');
+        bar.classList.add('muted');
+      }
+    } else if (isLocal() && kd === 'hotseat' && room.state === 'playing') {
+      bar.textContent = '轮到 ' + (room.turn === 'black' ? '黑方' : '白方') + ' 落子';
+    } else if (isLocal() && kd === 'ai' && room.state === 'playing') {
+      if (room.turn === S.local.aiColor) { bar.textContent = '电脑思考中'; bar.classList.add('thinking', 'muted'); }
+      else bar.textContent = '轮到你落子 · 执' + (myColor === 'black' ? '黑' : '白');
+    } else if (room.state === 'waiting') {
       bar.textContent = mySeat === 'host' ? '等待好友加入…' : '已加入房间, 等待房主开始';
       bar.classList.add('muted');
     } else if (room.state === 'over') {
@@ -304,9 +756,39 @@
     if (room.rules.mode === 'renju' && myTurn && myColor === 'black' && room.board) {
       forbidden = GR.forbiddenPoints(room.board, room.rules.size);
     }
-    board.update(room, { myTurn, myColor: myColor || 'black', forbidden });
+    if (S.mode === 'online' && S.pending.size && room.board) {
+      for (const [idx, c] of [...S.pending]) {
+        const v = room.board[idx];
+        if (v === c || v !== 0) S.pending.delete(idx);
+      }
+    }
+    // 威胁提示: 最后一手形成 冲四/活四/双三/四三 时, 相关棋子跳动提醒
+    if (room.state === 'playing' && room.moves.length && room.moves.length !== S.alertMoves) {
+      S.alertMoves = room.moves.length;
+      const last = room.moves[room.moves.length - 1];
+      const lastColor = last.c === 1 ? 'black' : 'white';
+      const t = scanThreats(room.board, room.rules.size, last.x, last.y, lastColor);
+      if (t) {
+        S.alert = {
+          cells: t.cells, kind: t.kind,
+          start: performance.now(), until: performance.now() + 2500,
+          color: (room.youColor && lastColor === room.youColor) ? 'gold' : 'red'
+        };
+        Sound.play('hint');
+        vibrate(20);
+        toast(t.kind + (room.youColor && lastColor === room.youColor ? ' (我方)' : ' (对方)'));
+      } else S.alert = null;
+    } else if (!room.moves.length) {
+      S.alert = null; S.alertMoves = 0;
+    }
+    board.update(room, {
+      myTurn, myColor: myColor || 'black', forbidden,
+      pending: S.mode === 'online' ? [...S.pending].map(([idx, c]) => ({ idx, color: c })) : [],
+      hint: (isLocal() && kd === 'puzzle' && S.local.puzzle.hint) ? S.local.puzzle.hint : null,
+      alert: S.alert
+    });
 
-    // 等待覆盖层
+    // 等待覆盖层 (联机)
     const waiting = room.state === 'waiting';
     $('ov-wait').classList.toggle('show', waiting);
     if (waiting) {
@@ -323,55 +805,98 @@
           : '等待房主开始对局…';
     }
 
-    // 结算覆盖层
+    // 结算覆盖层 (延迟弹出, 先看胜利演出)
     const over = room.state === 'over';
-    $('ov-result').classList.toggle('show', over);
+    if (!over) {
+      S.resultShown = false;
+      if (S.resultTimer) { clearTimeout(S.resultTimer); S.resultTimer = null; }
+      $('ov-result').classList.remove('show');
+    }
+    if (over && !S.resultShown) {
+      S.resultShown = true;
+      S.resultTimer = setTimeout(() => $('ov-result').classList.add('show'), isLocal() && kd === 'puzzle' ? 900 : 1250);
+    }
     if (over && room.result) {
+      const stampEl = $('result-stamp');
       const title = $('result-title');
-      let cls = 'draw', txt = '平局';
-      if (room.result.winner !== 'draw') {
-        const winnerColor = room.result.winner;
-        if (!amPlaying) {
-          txt = (winnerColor === 'black' ? '黑方' : '白方') + '获胜';
-          cls = 'win';
-        } else if (winnerColor === myColor) {
-          txt = '胜利'; cls = 'win';
-        } else { txt = '惜败'; cls = 'lose'; }
+      if (isLocal() && kd === 'puzzle') {
+        const passed = room.result.reason !== 'challenge-end';
+        title.textContent = passed ? '通过!' : '挑战结束';
+        title.className = 'result-title win';
+        if (passed) {
+          $('result-sub').textContent = '第 ' + S.local.puzzle.level + ' 关 · 累计 ' + S.local.challenge.score + ' 分';
+          $('btn-rematch').textContent = '下一关';
+          stampEl.textContent = '通';
+          stampEl.className = 'result-stamp';
+        } else {
+          $('result-sub').textContent = '通过 ' + S.local.challenge.score + ' 关 · 历史最佳 ' + S.local.challenge.best;
+          $('btn-rematch').textContent = '再来一轮';
+          stampEl.textContent = '终';
+          stampEl.className = 'result-stamp lose';
+        }
+        $('rematch-state').textContent = '';
+      } else {
+        let cls = 'draw', txt = '平局';
+        if (room.result.winner !== 'draw') {
+          const winnerColor = room.result.winner;
+          if (!amPlaying) { txt = (winnerColor === 'black' ? '黑方' : '白方') + '获胜'; cls = 'win'; }
+          else if (winnerColor === myColor) { txt = '胜利'; cls = 'win'; }
+          else { txt = kd === 'ai' ? '再接再厉' : '惜败'; cls = 'lose'; }
+        }
+        title.textContent = txt;
+        title.className = 'result-title ' + cls;
+        const reasons = {
+          five: '五连成线', timeout: '超时判负', resign: '认输',
+          disconnect: '掉线超时', agreement: '双方同意', 'board-full': '棋盘已满'
+        };
+        const winnerName = room.result.winner === 'draw' ? ''
+          : (room.players[room.colors[room.result.winner]] || {}).name || '';
+        $('result-sub').textContent =
+          room.result.winner === 'draw'
+            ? (reasons[room.result.reason] || '') + ' · 和棋'
+            : (winnerName + ' (' + (room.result.winner === 'black' ? '黑' : '白') + ') · ' + (reasons[room.result.reason] || ''));
+        if (isLocal() && kd === 'ai') {
+          $('btn-rematch').disabled = false;
+          $('btn-rematch').textContent = '再来一局';
+          $('rematch-state').textContent = '先手互换, 重新开战!';
+        } else {
+          const voted = myColor && room.rematch[myColor];
+          $('btn-rematch').disabled = !!voted;
+          $('btn-rematch').textContent = voted ? '已申请' : '再来一局';
+          $('rematch-state').textContent =
+            room.rematch.black && room.rematch.white ? '双方同意, 正在交换先后手开始新对局…'
+              : (voted ? '等待对方同意…' : '双方都点击「再来一局」即可交换先后手再战');
+        }
+        // 印章
+        if (room.result.winner === 'draw') { stampEl.textContent = '和'; stampEl.className = 'result-stamp draw'; }
+        else if (!amPlaying) { stampEl.textContent = '观'; stampEl.className = 'result-stamp lose'; }
+        else if (room.result.winner === myColor) { stampEl.textContent = '胜'; stampEl.className = 'result-stamp'; }
+        else { stampEl.textContent = '负'; stampEl.className = 'result-stamp lose'; }
       }
-      title.textContent = txt;
-      title.className = 'result-title ' + cls;
-      const reasons = {
-        five: '五连成线', timeout: '超时判负', resign: '认输',
-        disconnect: '掉线超时', agreement: '双方同意', 'board-full': '棋盘已满'
-      };
-      const winnerName = room.result.winner === 'draw' ? ''
-        : (room.players[room.colors[room.result.winner]] || {}).name || '';
-      $('result-sub').textContent =
-        room.result.winner === 'draw'
-          ? (reasons[room.result.reason] || '') + ' · 和棋'
-          : (winnerName + ' (' + (room.result.winner === 'black' ? '黑' : '白') + ') · ' + (reasons[room.result.reason] || ''));
-      // 再来一局状态
-      const voted = myColor && room.rematch[myColor];
-      $('btn-rematch').disabled = !!voted;
-      $('btn-rematch').textContent = voted ? '已申请' : '再来一局';
-      $('rematch-state').textContent =
-        room.rematch.black && room.rematch.white ? '双方同意, 正在交换先后手开始新对局…'
-          : (voted ? '等待对方同意…' : '双方都点击「再来一局」即可交换先后手再战');
       if (!S.overAnnounced) {
         S.overAnnounced = true;
         if (!amPlaying) Sound.play('notify');
         else if (room.result.winner === 'draw') Sound.play('notify');
         else Sound.play(room.result.winner === myColor ? 'win' : 'lose');
+        if (amPlaying && room.result.winner === myColor && room.result.winner !== 'draw') vibrate([30, 40, 60]);
       }
     }
     if (!over) S.overAnnounced = false;
 
-    // 操作按钮
-    $('btn-undo').disabled = !(
-      amPlaying && room.state === 'playing' && room.rules.undo &&
-      room.turn === myColor && !room.undoReq && !room.drawOffer &&
-      room.moves.some(m => m.c === (myColor === 'black' ? 1 : 2)));
+    // 操作按钮 (按模式显隐)
+    const undoBtn = $('btn-undo');
+    undoBtn.textContent = kd === 'puzzle' ? '提示' : '悔棋';
+    if (kd === 'puzzle') {
+      undoBtn.disabled = room.state !== 'playing' || S.local.puzzle.hearts <= 1;
+    } else {
+      undoBtn.disabled = !(
+        amPlaying && room.state === 'playing' && room.rules.undo &&
+        room.turn === myColor && !room.undoReq && !room.drawOffer &&
+        room.moves.some(m => m.c === (myColor === 'black' ? 1 : 2)));
+    }
+    $('btn-draw').style.display = isLocal() ? 'none' : '';
     $('btn-draw').disabled = !(amPlaying && room.state === 'playing' && !room.drawOffer && !room.undoReq);
+    $('btn-resign').style.display = kd === 'hotseat' || kd === 'puzzle' ? 'none' : '';
     $('btn-resign').disabled = !(amPlaying && room.state === 'playing');
   }
 
@@ -385,16 +910,22 @@
     card.querySelector('.pname').textContent = p ? p.name : '等待加入';
     card.querySelector('.psub').textContent =
       (color === 'black' ? '黑' : '白') +
-      (isMe ? ' · 你' : '') +
+      (isMe && !isLocal() ? ' · 你' : '') +
       (p && !p.connected ? ' · 断线' : '');
     const timer = card.querySelector('.ptimer');
-    if (room.state === 'playing' && room.rules.timeLimit && active && room.deadline) {
+    const ring = card.querySelector('.ring');
+    const timed = room.state === 'playing' && room.rules.timeLimit && active && room.deadline;
+    if (timed) {
       const remain = Math.max(0, (room.deadline - (Date.now() + S.serverOffset)) / 1000);
+      const total = room.rules.timeLimit;
       timer.classList.remove('off');
       timer.classList.toggle('hot', remain <= 10);
       timer.textContent = Math.floor(remain / 60) + ':' + String(Math.floor(remain % 60)).padStart(2, '0');
+      ring.classList.add('on');
+      ring.style.setProperty('--p', Math.max(0, Math.min(100, (remain / total) * 100)));
     } else {
       timer.classList.add('off');
+      ring.classList.remove('on');
     }
   }
 
@@ -410,13 +941,17 @@
       : '虚位以待';
   }
 
-  // 每秒刷新倒计时
-  setInterval(() => { if (S.room) { renderCard('card-black', 'black', S.room); renderCard('card-white', 'white', S.room); } }, 250);
+  // 每 250ms 刷新倒计时圆环
+  setInterval(() => {
+    if (S.mode === 'online' && S.room) {
+      renderCard('card-black', 'black', S.room);
+      renderCard('card-white', 'white', S.room);
+    }
+  }, 250);
 
   // ---------- 对话框响应 ----------
   function maybePromptRequests(prev, cur) {
     if (!prev) return cur;
-    // 对方发来悔棋申请
     if (cur.undoReq && cur.undoReq !== cur.youColor && prev.undoReq !== cur.undoReq) {
       const who = (cur.players[cur.colors[cur.undoReq]] || {}).name || '对方';
       showModal('悔棋请求', who + ' 想撤销最后一手, 是否同意?', [
@@ -424,7 +959,6 @@
         { label: '同意', cb: () => send({ t: 'undo_res', ok: true }) }
       ]);
     }
-    // 对方求和
     if (cur.drawOffer && cur.drawOffer !== cur.youColor && prev.drawOffer !== cur.drawOffer) {
       const who = (cur.players[cur.colors[cur.drawOffer]] || {}).name || '对方';
       showModal('求和请求', who + ' 提议平局握手言和, 是否同意?', [
@@ -438,7 +972,7 @@
   // ---------- 事件绑定 ----------
   function myName() {
     const v = $('name-input').value.trim();
-    localStorage.setItem('gomoku.name', v);
+    if (v) localStorage.setItem('gomoku.name', v);
     return v;
   }
 
@@ -448,14 +982,27 @@
       if (!btn) return;
       seg.querySelectorAll('button').forEach(b => b.classList.remove('on'));
       btn.classList.add('on');
+      if (seg.classList.contains('seg-ai')) localStorage.setItem('gomoku.ailv', btn.dataset.v);
     });
   }
+  (function () {
+    const lv = localStorage.getItem('gomoku.ailv');
+    if (!lv) return;
+    const btn = document.querySelector('.seg-ai button[data-v="' + lv + '"]');
+    if (btn) {
+      document.querySelectorAll('.seg-ai button').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+    }
+  })();
 
   $('name-input').value = localStorage.getItem('gomoku.name') || '';
 
   $('btn-create').onclick = () => {
     send({ t: 'create', name: myName(), rules: readRules() });
   };
+  $('btn-ai').onclick = () => startLocalGame('ai', 'black');
+  $('btn-hot').onclick = () => startLocalGame('hotseat');
+  $('btn-puzzle').onclick = () => startPuzzle(1, 0, 3);
 
   $('btn-join').onclick = () => {
     const code = $('code-input').value.trim().toUpperCase();
@@ -481,34 +1028,68 @@
 
   $('btn-share').onclick = () => {
     copyText(inviteUrl(), '链接已复制, 打开微信粘贴给好友');
-    const ov = $('ov-wait');
     if (S.room && S.room.state !== 'waiting') toast('链接已复制 · 新好友打开可进入观战');
-    else ov.classList.add('show');
+    else $('ov-wait').classList.add('show');
   };
 
+  // 声音配置弹层
   $('btn-sound').onclick = () => {
-    const on = Sound.toggle();
-    $('btn-sound').textContent = on ? '🔊' : '🔇';
+    $('sound-pop').classList.toggle('show');
   };
-  $('btn-sound').textContent = Sound.enabled ? '🔊' : '🔇';
+  document.addEventListener('click', (e) => {
+    const pop = $('sound-pop');
+    if (!pop.classList.contains('show')) return;
+    if (e.target === $('btn-sound') || pop.contains(e.target)) return;
+    pop.classList.remove('show');
+  });
+  function refreshSoundPop() {
+    $('sp-sfx').textContent = Sound.sfxOn ? '开' : '关';
+    $('sp-sfx').classList.toggle('on', Sound.sfxOn);
+    $('sp-music').textContent = Sound.musicOn ? '开' : '关';
+    $('sp-music').classList.toggle('on', Sound.musicOn);
+    $('vol-sfx').value = Math.round(Sound.sfxVol * 100);
+    $('vol-music').value = Math.round(Sound.musicVol * 100);
+  }
+  $('sp-sfx').onclick = () => { Sound.setSfx(!Sound.sfxOn); refreshSoundPop(); };
+  $('sp-music').onclick = () => { Sound.setMusic(!Sound.musicOn); refreshSoundPop(); };
+  $('vol-sfx').oninput = (e) => Sound.setSfxVol(e.target.value / 100);
+  $('vol-music').oninput = (e) => Sound.setMusicVol(e.target.value / 100);
+  // 音乐风格切换
+  for (const btn of document.querySelectorAll('#sp-style-row button')) {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#sp-style-row button').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      Sound.setMusicStyle(btn.dataset.v);
+    });
+  }
+  (function initStyleBtns() {
+    const cur = Sound.musicStyle;
+    document.querySelectorAll('#sp-style-row button').forEach(b => b.classList.toggle('on', b.dataset.v === cur));
+  })();
+  refreshSoundPop();
 
   $('btn-exit').onclick = () => {
+    if (isLocal()) { exitToHome(); return; }
     const room = S.room;
     if (!room) return;
     if (room.state === 'playing' && room.youColor) {
       showModal('退出房间', '对局进行中, 退出将按认输处理。确定退出?', [
         { label: '继续对局', cls: 'ghost' },
-        { label: '退出', cb: () => { send({ t: 'leave' }); leaveLocal(); } }
+        { label: '退出', cb: () => { send({ t: 'leave' }); leaveOnline(); } }
       ]);
     } else {
       send({ t: 'leave' });
-      leaveLocal();
+      leaveOnline();
     }
   };
 
   $('btn-start').onclick = () => send({ t: 'start' });
 
-  $('btn-undo').onclick = () => send({ t: 'undo_req' });
+  $('btn-undo').onclick = () => {
+    if (kind() === 'puzzle') { puzzleHint(); return; }
+    if (isLocal()) { localUndo(); return; }
+    send({ t: 'undo_req' });
+  };
 
   $('btn-draw').onclick = () => {
     showModal('请求和棋', '向对方提议平局, 对方同意后本局作和。', [
@@ -518,21 +1099,62 @@
   };
 
   $('btn-resign').onclick = () => {
+    if (isLocal() && kind() === 'ai') {
+      showModal('认输', '确定向电脑认输吗?', [
+        { label: '再想想', cls: 'ghost' },
+        { label: '认输', cb: () => {
+          const L = S.local;
+          if (L && !L.over) {
+            L.over = true;
+            L.result = { winner: L.aiColor, reason: 'resign' };
+            S.room = localSnapshot();
+            renderRoom();
+          }
+        } }
+      ]);
+      return;
+    }
     showModal('确认认输', '认输后本局直接判负, 确定吗?', [
       { label: '再想想', cls: 'ghost' },
       { label: '认输', cb: () => send({ t: 'resign' }) }
     ]);
   };
 
-  $('btn-rematch').onclick = () => send({ t: 'rematch' });
-  $('btn-back-home').onclick = () => { send({ t: 'leave' }); leaveLocal(); };
+  $('btn-rematch').onclick = () => {
+    if (isLocal()) {
+      const kd = kind();
+      if (kd === 'puzzle') {
+        const r = S.local.result;
+        if (S.local.over && r && r.reason === 'challenge-end') startPuzzle(1, 0, 3);
+        else startPuzzle(S.local.puzzle.level + 1, S.local.challenge.score, S.local.puzzle.hearts);
+      } else {
+        startLocalGame(kd, S.local.playerColor === 'black' ? 'white' : 'black');
+      }
+      return;
+    }
+    send({ t: 'rematch' });
+  };
+  $('btn-back-home').onclick = () => {
+    if (isLocal()) { exitToHome(); return; }
+    send({ t: 'leave' });
+    leaveOnline();
+  };
 
-  // 棋盘点击落子
   board.onTap = (x, y) => {
     const room = S.room;
     if (!room || room.state !== 'playing') return;
-    if (!room.youColor || room.turn !== room.youColor) return;
     const n = room.rules.size;
+    const kd = kind();
+
+    if (isLocal() && kd === 'puzzle') { puzzleTap(x, y); return; }
+    if (isLocal() && kd === 'hotseat') {
+      if (room.board[y * n + x] !== 0) { toast('这里已有棋子'); return; }
+      vibrate(12);
+      applyLocalMove(x, y);
+      return;
+    }
+
+    if (!room.youColor || room.turn !== room.youColor) return;
     if (room.board[y * n + x] !== 0) { toast('这个位置已有棋子'); return; }
     if (room.rules.mode === 'renju' && room.youColor === 'black') {
       const f = GR.isForbiddenPoint(room.board.slice(), n, x, y);
@@ -541,6 +1163,17 @@
         toast('禁手点: ' + (names[f] || f) + ', 黑棋不可落子');
         return;
       }
+    }
+    vibrate(12);
+    if (isLocal() && kd === 'ai') {
+      applyLocalMove(x, y);
+      if (S.local && !S.local.over && S.local.turn === S.local.aiColor) scheduleAI();
+      return;
+    }
+    const idx = y * n + x;
+    if (!S.pending.has(idx)) {
+      S.pending.set(idx, room.youColor === 'black' ? 1 : 2);
+      renderRoom();
     }
     send({ t: 'move', x, y });
   };
