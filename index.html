@@ -936,19 +936,21 @@ function bakeMoonGround(){
   const c=document.createElement('canvas');c.width=W2;c.height=H2;
   const g=c.getContext('2d');
   const bg=g.createLinearGradient(0,0,0,H2);
-  bg.addColorStop(0,'#7E7C74');bg.addColorStop(0.3,'#96948A');bg.addColorStop(0.55,'#6E6C66');bg.addColorStop(1,'#3E3D38');
+  bg.addColorStop(0,'#6E6C64');bg.addColorStop(0.3,'#7E7C74');bg.addColorStop(0.55,'#5A5852');bg.addColorStop(1,'#2E2D28');
   g.fillStyle=bg;g.fillRect(0,0,W2,H2);
-  tintGround(g,W2,H2,'#8A887E',0.075,0.02,0.05,5151,0.5);
-  tintGround(g,W2,H2,'#B8B4A8',0.05,0.09,0.14,5152,0.22);
+  tintGround(g,W2,H2,'#7A786E',0.08,0.02,0.05,5151,0.55);
+  tintGround(g,W2,H2,'#A8A498',0.05,0.09,0.14,5152,0.2);
   const rnd=mulberry(5150);
-  for(let i=0;i<9;i++){                       // 环形山
-    const cx2=rnd()*W2,cy2=H2*0.25+rnd()*H2*0.6,cr=14+rnd()*46;
-    g.save();g.translate(cx2,cy2);g.scale(1,0.38);
-    const cw=g.createRadialGradient(0,0,cr*0.15,0,0,cr);
-    cw.addColorStop(0,'rgba(30,30,32,.5)');cw.addColorStop(0.72,'rgba(60,58,54,.28)');cw.addColorStop(0.96,'rgba(220,214,200,.30)');cw.addColorStop(1,'rgba(220,214,200,0)');
+  for(let i=0;i<11;i++){                      // 环形山（透视扁率）
+    const cy2=H2*0.22+rnd()*H2*0.62;
+    const persp=0.22+(cy2/H2)*0.26;
+    const cx2=rnd()*W2,cr=(12+rnd()*46)*(0.55+cy2/H2*0.75);
+    g.save();g.translate(cx2,cy2);g.scale(1,persp);
+    const cw=g.createRadialGradient(0,0,cr*0.12,0,0,cr);
+    cw.addColorStop(0,'rgba(18,18,20,.55)');cw.addColorStop(0.7,'rgba(48,46,42,.26)');cw.addColorStop(0.95,'rgba(198,194,180,.32)');cw.addColorStop(1,'rgba(198,194,180,0)');
     g.fillStyle=cw;
     g.beginPath();g.arc(0,0,cr,0,TAU);g.fill();
-    if(cr>30){g.fillStyle='rgba(210,206,196,.4)';g.beginPath();g.arc(0,0,cr*0.09,0,TAU);g.fill();}
+    if(cr>28){g.fillStyle='rgba(190,186,172,.4)';g.beginPath();g.arc(0,0,cr*0.08,0,TAU);g.fill();}
     g.restore();
     g.strokeStyle='rgba(210,206,196,.5)';g.lineWidth=2;
     g.beginPath();g.ellipse(cx2,cy2-cr*0.06,cr,cr*0.38,0,Math.PI*1.05,Math.PI*1.95);g.stroke();
@@ -965,9 +967,18 @@ function bakeMoonGround(){
     g.strokeStyle='rgba(214,210,200,.45)';g.lineWidth=1;
     g.beginPath();g.ellipse(cx2,cy2,cr,cr*0.42,0,Math.PI*1.1,Math.PI*1.9);g.stroke();
   }
+  for(let i=0;i<170;i++){                     // 多边形岩块（明暗面）
+    const rx=rnd()*W2,ry=H2*0.3+rnd()*H2*0.66,rs=2+rnd()*6;
+    g.globalAlpha=0.45+rnd()*0.4;
+    g.fillStyle='#6A6860';
+    g.beginPath();g.moveTo(rx-rs,ry);g.lineTo(rx-rs*0.4,ry-rs*0.75);g.lineTo(rx+rs*0.65,ry-rs*0.55);g.lineTo(rx+rs,ry);g.closePath();g.fill();
+    g.fillStyle='#3C3B36';
+    g.beginPath();g.moveTo(rx-rs,ry);g.lineTo(rx+rs,ry);g.lineTo(rx+rs*0.3,ry+rs*0.5);g.closePath();g.fill();
+    g.globalAlpha=1;
+  }
   for(let i=0;i<240;i++){                     // 细颗粒
     g.globalAlpha=0.1+rnd()*0.3;
-    g.fillStyle=rnd()>0.5?'#4A4945':'#9A968C';
+    g.fillStyle=rnd()>0.5?'#41403C':'#8A877C';
     g.fillRect(rnd()*W2,H2*0.28+rnd()*H2*0.7,1+rnd()*2.4,1+rnd()*2.4);
   }
   // 脚印链：从着陆平台中心伸向三个采样方向
@@ -989,7 +1000,7 @@ function bakeMoonHills(){
   const W2=1600,H2=Math.ceil(H*0.34);
   const c=document.createElement('canvas');c.width=W2;c.height=H2;
   const g=c.getContext('2d');
-  g.fillStyle='#262833';
+  g.fillStyle='#3E404A';
   g.beginPath();g.moveTo(0,H2);
   for(let x=0;x<=W2;x+=25){
     const aa=x/W2*TAU;
@@ -1007,13 +1018,16 @@ function bakeMoonHills(){
   g.lineTo(W2,H2);g.closePath();g.fill();
   return c;
 }
-function bakeEarthGround(){
+function bakeEarthGround(cc){
+  const pal=cc&&cc.ground?cc.ground:{top:'#4E7E58',mid:'#38664A',low:'#24523E',bot:'#142C22'};
   const W2=1600,H2=Math.ceil(H*0.62);
   const c=document.createElement('canvas');c.width=W2;c.height=H2;
   const g=c.getContext('2d');
   const bg=g.createLinearGradient(0,0,0,H2);
-  bg.addColorStop(0,'#4E7E58');bg.addColorStop(0.35,'#38664A');bg.addColorStop(0.7,'#24523E');bg.addColorStop(1,'#142C22');
+  bg.addColorStop(0,pal.top);bg.addColorStop(0.35,pal.mid);bg.addColorStop(0.7,pal.low);bg.addColorStop(1,pal.bot||pal.low);
   g.fillStyle=bg;g.fillRect(0,0,W2,H2);
+  tintGround(g,W2,H2,pal.mid,0.06,0.018,0.045,7151,0.45);
+  tintGround(g,W2,H2,pal.top,0.045,0.08,0.13,7152,0.2);
   tintGround(g,W2,H2,'#4E8C5C',0.06,0.018,0.045,7151,0.45);
   tintGround(g,W2,H2,'#88B890',0.045,0.08,0.13,7152,0.2);
   const rnd=mulberry(7150);
@@ -1073,11 +1087,12 @@ function bakeEarthGround(){
   }
   return c;
 }
-function bakeEarthHills(){
+function bakeEarthHills(cc){
+  const hc=cc&&cc.hill?cc.hill:'#4A6E6A';
   const W2=1600,H2=Math.ceil(H*0.3);
   const c=document.createElement('canvas');c.width=W2;c.height=H2;
   const g=c.getContext('2d');
-  g.fillStyle='#4A6E6A';                      // 远山（大气透视蓝绿，周期 fbm 轮廓）
+  g.fillStyle=hc;                              // 远山（大气透视，周期 fbm 轮廓）
   g.beginPath();g.moveTo(0,H2);
   for(let x=0;x<=W2;x+=28){
     const aa=x/W2*TAU;
@@ -1085,7 +1100,7 @@ function bakeEarthHills(){
     g.lineTo(x,H2*(0.72-v*0.5));
   }
   g.lineTo(W2,H2);g.closePath();g.fill();
-  tintGround(g,W2,H2,'#4A6E6A',0.06,0.02,0.06,6251,0.3);
+  tintGround(g,W2,H2,hc,0.06,0.02,0.06,6251,0.3);
   return c;
 }
 function bakeCityLights(){
@@ -1308,6 +1323,37 @@ const LAND_CFG={
   pluto:{label:'冥王星',sky:'space',ground:{top:'#C4A48E',mid:'#8A6E58',low:'#4A3828'},craters:7,rocks:70,yaws:[0.7,2.3,4.2],task:'采集氮冰样本',gcol:'#E8D8C8'},
 };
 const LAND_SAMPLE_DEF={yaws:[0.6,2.1,4.1],task:'采集样本',gcol:'#E8E4D8'};
+const CONTINENTS=[
+ {id:'asia',name:'亚洲 · 东亚',lat:34,lon:108,
+  sky:['#E8C898','#C09058'],ground:{top:'#8CAC58',mid:'#5A8C42',low:'#2E5230'},hill:'#4A6E4A',
+  feat:'terraces',brief:'东亚观测站收到季风预警。沿梯田走向采集三份水稻土样，校准气象模型。',
+  names:['AS-01 江南水稻土','AS-02 喜马拉雅冰晶','AS-03 东海盐晶'],yaws:[0.6,2.3,4.0]},
+ {id:'europe',name:'欧洲 · 阿尔卑斯',lat:47,lon:8,
+  sky:['#B8D0E8','#88B0D4'],ground:{top:'#5C8C64',mid:'#3E6C48',low:'#1E3E30'},hill:'#4E6A72',snow:true,
+  feat:'alps',brief:'阿尔卑斯冰川监测站报告：雪线逐年上升。采集高峰冰样与针叶林对照样本。',
+  names:['EU-01 阿尔卑斯雪样','EU-02 黑森林针叶','EU-03 冰川融水'],yaws:[0.5,2.1,3.9]},
+ {id:'africa',name:'非洲 · 萨瓦纳',lat:2,lon:22,
+  sky:['#F0C878','#D89048'],ground:{top:'#C8A850',mid:'#A07830',low:'#584018'},hill:'#8A6828',
+  feat:'savanna',brief:'稀树草原的旱季结束了。象群正在迁徙——采集草原土样，别惊扰它们。',
+  names:['AF-01 稀树草原土','AF-02 金合欢豆荚','AF-03 干季河床沙'],yaws:[0.7,2.4,4.2]},
+ {id:'namerica',name:'北美洲 · 峡谷',lat:38,lon:-110,
+  sky:['#E8C098','#C08850'],ground:{top:'#C06030',mid:'#9A4824',low:'#582A14'},hill:'#8A4420',
+  feat:'canyon',brief:'红岩峡谷保存着两亿年的地层史。沿岩层采集三段不同年代的样本。',
+  names:['NA-01 峡谷红岩','NA-02 岩层化石段','NA-03 河床砾石'],yaws:[0.55,2.15,3.95]},
+ {id:'samerica',name:'南美洲 · 亚马逊',lat:-4,lon:-60,
+  sky:['#A8D0B8','#78A888'],ground:{top:'#1E5C34',mid:'#14422A',low:'#0A2818'},hill:'#2A5C3A',
+  feat:'rainforest',brief:'地球之肺的心脏地带。冠层之下藏着全球最密集的生命——轻装深入，采集三份样本。',
+  names:['SA-01 雨林腐殖土','SA-02 安第斯矿石','SA-03 瀑布水雾凝珠'],yaws:[0.65,2.25,4.05]},
+ {id:'oceania',name:'大洋洲 · 东岸',lat:-28,lon:153,
+  sky:['#88C8E8','#58A0D0'],ground:{top:'#D8C890',mid:'#B8A868',low:'#786840'},hill:'#C0B080',
+  feat:'beach',brief:'大堡礁的外缘沙滩。海风很咸——采集珊瑚沙与桉树叶，潮汐表在站内。',
+  names:['OC-01 珊瑚白沙','OC-02 桉树叶','OC-03 太平洋浪花盐'],yaws:[0.6,2.3,4.1]},
+ {id:'antarctica',name:'南极洲',lat:-76,lon:40,
+  sky:['#1A2238','#34406A'],ground:{top:'#E8F0F8',mid:'#C8D8E8',low:'#8FA8C4'},hill:'#D8E4F0',aurora:true,
+  feat:'ice',brief:'极夜边缘的冰盖上空有极光。冰芯封着一百万年前的空气——采集三段冰样。',
+  names:['AN-01 冰芯样本','AN-02 极光期大气瓶','AN-03 企鹅聚落羽毛'],yaws:[0.7,2.35,4.15]}
+];
+const CONTINENT_BY_ID={};CONTINENTS.forEach(c=>CONTINENT_BY_ID[c.id]=c);
 const SAMPLE_NAMES={
   moon:['KS-01 静海玄武岩','KS-02 高地斜长岩','KS-03 月壤玻璃珠'],
   earth:['PL-01 温带草原植被','PL-02 火山凝灰岩','PL-03 湖畔藻类样本'],
@@ -1343,6 +1389,13 @@ const BRIEF_FROM={
   pluto:'柯伊伯前哨',ceres:'谷神星中继',eris:'柯伊伯前哨',haumea:'柯伊伯前哨',makemake:'柯伊伯前哨',sedna:'深空前哨'
 };
 const LAND_BRIEF={
+  asia:'东亚观测站收到季风预警。沿梯田走向采集三份水稻土样，校准气象模型。',
+  europe:'阿尔卑斯冰川监测站报告：雪线逐年上升。采集高峰冰样与针叶林对照样本。',
+  africa:'稀树草原的旱季结束了。象群正在迁徙——采集草原土样，别惊扰它们。',
+  namerica:'红岩峡谷保存着两亿年的地层史。沿岩层采集三段不同年代的样本。',
+  samerica:'地球之肺的心脏地带。冠层之下藏着全球最密集的生命——轻装深入，采集三份样本。',
+  oceania:'大堡礁的外缘沙滩。海风很咸——采集珊瑚沙与桉树叶，潮汐表在站内。',
+  antarctica:'极夜边缘的冰盖上空有极光。冰芯封着一百万年前的空气——采集三段冰样。',
   moon:'静海补给站失联前发来最后一讯：地表散落着三件科研样本。找到并回收它们。',
   earth:'风暴观测站的气象阵列被吹坏了。跨过晨昏线校准日出标记，再采集一份植物样本。',
   mars:'轨道器传回异常读数。驾驶火星车抵达三处信号源，采集岩石样本。',
@@ -1366,7 +1419,8 @@ function enterLand(id){
   if(land&&land.id===id)return;
   const lc=landCfg(id);
   land={id,yaw:0.15,born:performance.now(),pt:performance.now(),phase:'descend',touched:false,
-    samples:lc.yaws.map(()=>false),er:false,sunArmed:true,cityArmed:true,g1:null,g2:null,g3:null,dust:[]};
+    samples:lc.yaws.map(()=>false),er:false,sunArmed:true,cityArmed:true,g1:null,g2:null,g3:null,dust:[],
+    mode:id==='earth'?'globe':'surface',lon0:-100,lat0:18,globeDirty:true,continent:null,lonVel:0};
   LAYER=0;flyAnim=null;zoomAnim=null;inertia.vx=inertia.vy=0;
   scaleFlash=1;scaleLockUntil=performance.now()+900;
   document.body.classList.add('land-mode');
@@ -1376,8 +1430,9 @@ function enterLand(id){
   if(Object.keys(landVisited).length>=Object.keys(LAND_CFG).length)unlockAchv('grand-tour');
   unlockAchv('first-land');
   $('land-title').textContent=landCfg(id).label+' · 着陆序列';
-  $('land-brief').textContent=LAND_BRIEF[id]||'';
-  $('land-from').textContent='收到来自 '+(BRIEF_FROM[id]||'深空网络')+' 的讯息';
+  const bid=id==='earth'?'asia':id;
+  $('land-brief').textContent=LAND_BRIEF[bid]||LAND_BRIEF[id]||'';
+  $('land-from').textContent='收到来自 '+(BRIEF_FROM[bid]||BRIEF_FROM[id]||'深空网络')+' 的讯息';
   buildCompass();
   renderLandTasks();
   toast('下降序列启动：'+landCfg(id).label);
@@ -1394,14 +1449,15 @@ function exitLand(){
 }
 function renderLandTasks(){
   if(!land)return;
-  const cfg=landCfg(land.id);
+  const cfg=land.id==='earth'&&land.continent?CONTINENT_BY_ID[land.continent]:landCfg(land.id);
   const el=$('land-tasks');
   if(!el)return;
   let html='';
+  const yl=cfg.yaws||LAND_SAMPLE_DEF.yaws;
   if(cfg.auto){
-    cfg.tasks.forEach((nm,i)=>{html+='<div class="lt'+(land.samples[i]?' done':'')+'" data-i="'+i+'" data-yaw="'+(cfg.yaws[i]!==undefined?cfg.yaws[i]:yawForTask(land.id,i))+'"><i></i><span>'+nm+'</span></div>';});
+    cfg.tasks.forEach((nm,i)=>{html+='<div class="lt'+(land.samples[i]?' done':'')+'" data-i="'+i+'" data-yaw="'+(yl[i]!==undefined?yl[i]:yawForTask(land.id,i))+'"><i></i><span>'+nm+'</span></div>';});
   }else{
-    for(let i=0;i<cfg.yaws.length;i++){html+='<div class="lt'+(land.samples[i]?' done':'')+'" data-i="'+i+'" data-yaw="'+cfg.yaws[i]+'"><i></i><span>'+cfg.task+' · 点 '+(i+1)+'</span></div>';}
+    for(let i=0;i<yl.length;i++){html+='<div class="lt'+(land.samples[i]?' done':'')+'" data-i="'+i+'" data-yaw="'+yl[i]+'"><i></i><span>'+cfg.task+' · 点 '+(i+1)+'</span></div>';}
   }
   el.innerHTML=html;
 }
@@ -2173,6 +2229,22 @@ function fitZoom(){
   return clamp(Math.min(W,H)*0.46/maxR,0.08,2);
 }
 
+function bakeLandHills(cfg){
+  const W2=1600,H2=Math.ceil(H*0.3);
+  const c=document.createElement('canvas');c.width=W2;c.height=H2;
+  const g=c.getContext('2d');
+  const hc=cfg.hill||cfg.ground.mid;
+  g.fillStyle=hc;
+  g.beginPath();g.moveTo(0,H2);
+  for(let x=0;x<=W2;x+=28){
+    const aa=x/W2*TAU;
+    const v=fbm2(Math.cos(aa)*3+40,Math.sin(aa)*3+40,6250,3);
+    g.lineTo(x,H2*(0.72-v*0.5));
+  }
+  g.lineTo(W2,H2);g.closePath();g.fill();
+  tintGround(g,W2,H2,hc,0.06,0.02,0.06,6252,0.3);
+  return c;
+}
 function bakeGenericGround(cfg){
   const W2=1600,H2=Math.ceil(H*0.62);
   const c=document.createElement('canvas');c.width=W2;c.height=H2;
@@ -2184,18 +2256,28 @@ function bakeGenericGround(cfg){
   tintGround(g,W2,H2,cfg.ground.top,0.05,0.09,0.14,4202,0.22);
   const rnd=mulberry(4200+W2);
   for(let i=0;i<(cfg.craters||0);i++){
-    const cx2=rnd()*W2,cy2=H2*0.25+rnd()*H2*0.6,cr=12+rnd()*44;
-    g.globalAlpha=0.45;
-    g.fillStyle=cfg.ground.low;
-    g.beginPath();g.ellipse(cx2,cy2,cr,cr*0.36,0,0,TAU);g.fill();
-    g.strokeStyle='rgba(235,230,215,.4)';g.lineWidth=2;
-    g.beginPath();g.ellipse(cx2,cy2-cr*0.06,cr,cr*0.36,0,Math.PI*1.05,Math.PI*1.95);g.stroke();
-    g.globalAlpha=1;
+    const cy2=H2*0.25+rnd()*H2*0.6;
+    const persp=0.25+(cy2/H2)*0.3;                 // 透视扁率：越近越圆
+    const cx2=rnd()*W2,cr=(10+rnd()*46)*(0.5+cy2/H2*0.8);
+    g.save();g.translate(cx2,cy2);g.scale(1,persp);
+    const cw=g.createRadialGradient(0,0,cr*0.12,0,0,cr);
+    cw.addColorStop(0,'rgba(0,0,0,.34)');cw.addColorStop(0.7,'rgba(0,0,0,.14)');cw.addColorStop(0.94,'rgba(235,230,215,.26)');cw.addColorStop(1,'rgba(235,230,215,0)');
+    g.fillStyle=cw;
+    g.beginPath();g.arc(0,0,cr,0,TAU);g.fill();
+    g.restore();
+    g.strokeStyle='rgba(235,230,215,.38)';g.lineWidth=1.6;
+    g.beginPath();g.ellipse(cx2,cy2-cr*persp*0.08,cr,cr*persp,0,Math.PI*1.06,Math.PI*1.94);g.stroke();
+    g.strokeStyle='rgba(15,10,6,.4)';
+    g.beginPath();g.ellipse(cx2,cy2+cr*persp*0.08,cr,cr*persp,0,Math.PI*0.08,Math.PI*0.92);g.stroke();
   }
-  for(let i=0;i<(cfg.rocks||80);i++){
-    g.globalAlpha=0.2+rnd()*0.45;
-    g.fillStyle=rnd()>0.5?cfg.ground.low:cfg.ground.mid;
-    g.fillRect(rnd()*W2,H2*0.3+rnd()*H2*0.68,1.5+rnd()*3.2,1.5+rnd()*3.2);
+  for(let i=0;i<(cfg.rocks||80);i++){              // 多边形岩块（明暗面）
+    const rx=rnd()*W2,ry=H2*0.3+rnd()*H2*0.66,rs=2+rnd()*5;
+    g.globalAlpha=0.5+rnd()*0.4;
+    g.fillStyle=cfg.ground.mid;
+    g.beginPath();g.moveTo(rx-rs,ry);g.lineTo(rx-rs*0.4,ry-rs*0.8);g.lineTo(rx+rs*0.7,ry-rs*0.6);g.lineTo(rx+rs,ry);g.closePath();g.fill();
+    g.fillStyle=cfg.ground.low;
+    g.beginPath();g.moveTo(rx-rs,ry);g.lineTo(rx+rs,ry);g.lineTo(rx+rs*0.3,ry+rs*0.5);g.closePath();g.fill();
+    g.globalAlpha=1;
   }
   if(cfg.mountain){                            // 奥林帕斯山：远景盾形巨山
     const mx=W2*0.44,mw=470,mh=H2*0.4;
@@ -2358,8 +2440,13 @@ function drawLandGeneric(t,cfg,drop){
       }
     }
   }
-  if(!land.g1)land.g1=bakeGenericGround(cfg);
+  if(!land.g1){land.g1=bakeGenericGround(cfg);land.g2=bakeLandHills(cfg);}
   const off=Math.round((((yaw*W*0.9)%1600)+1600)%1600);
+  const hoff=Math.round((((yaw*W*0.34)%1600)+1600)%1600);
+  ctx.globalAlpha=0.85;
+  ctx.drawImage(land.g2,-hoff,H*0.36+drop);
+  ctx.drawImage(land.g2,1600-hoff,H*0.36+drop);
+  ctx.globalAlpha=1;
   const hzg=ctx.createLinearGradient(0,H*0.38,0,H*0.5);
   hzg.addColorStop(0,'rgba(255,214,150,0)');
   hzg.addColorStop(1,'rgba(255,214,150,.14)');
@@ -2438,6 +2525,168 @@ function drawLandSun(t){
   const vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.3,W/2,H/2,Math.max(W,H)*0.75);
   vg.addColorStop(0,'rgba(120,40,10,0)');vg.addColorStop(1,'rgba(120,40,10,.35)');
   ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+}
+
+/* ═══ 地球着陆模式：globe（3D 地球选点）→ descent（降落过场）→ surface（大洲地表）═══ */
+function drawEarthMode(t,dt,seq){
+  if(!land.mode||land.mode==='globe')drawGlobeMode(t);
+  else if(land.mode==='descent'){drawDescent(t);return;}
+  else drawLandEarth(t,seq?seq.drop:0);
+}
+function bakeGlobeView(){
+  const R=Math.min(W,H)*0.46;
+  const S=Math.ceil(R*2)+2;
+  const cv=land.globeCv&&land.globeCv.width===S?land.globeCv:(land.globeCv=document.createElement('canvas'));
+  cv.width=cv.height=S;
+  const g=cv.getContext('2d');
+  const day=TEX_IMG.earth,night=TEX_IMG.night,clouds=TEX_IMG.clouds;
+  const step=2,cy=S/2;
+  const lon0=land.lon0,lat0=land.lat0;
+  for(let px=0;px<S;px+=step){
+    const nx=(px+step/2-S/2)/R;
+    const a1=Math.asin(clamp(nx-step*0.5/R,-1,1)),a2=Math.asin(clamp(nx+step*0.5/R,-1,1));
+    const lon=lon0+(a1+a2)/2*57.3;
+    const u=((lon/360)%1+1)%1;
+    const srcW=Math.max(1.5,Math.abs(a2-a1)/360*day.width);
+    const sx=u*day.width;                                  // 段左（wrap 在下方处理）
+    // 昼夜混合
+    const dl=((lon-120)%360+360)%360;                  // 距太阳经度差
+    const dayF=clamp((180-dl)/70-0.4,0,1);
+    if(sx+srcW<=day.width){                                // 常规列
+      g.drawImage(day,sx,0,srcW,day.height,px,0,step+0.8,S);
+      if(night&&dayF<1){
+        g.globalAlpha=1-dayF*0.85;
+        g.drawImage(night,sx,0,srcW,night.height,px,0,step+0.8,S);
+        g.globalAlpha=1;
+      }
+    }else{                                                 // 跨接缝：左右两段 wrap
+      const w1=day.width-sx,w2=srcW-w1;
+      g.drawImage(day,sx,0,w1,day.height,px,0,step*(w1/srcW)+0.6,S);
+      g.drawImage(day,0,0,w2,day.height,px+step*(w1/srcW),0,step*(w2/srcW)+0.6,S);
+      if(night&&dayF<1){
+        g.globalAlpha=1-dayF*0.85;
+        g.drawImage(night,sx,0,w1,night.height,px,0,step*(w1/srcW)+0.6,S);
+        g.drawImage(night,0,0,w2,night.height,px+step*(w1/srcW),0,step*(w2/srcW)+0.6,S);
+        g.globalAlpha=1;
+      }
+    }
+    if(clouds&&dayF>0.05){
+      const cu=((u+0.028)%1+1)%1;
+      g.globalAlpha=0.55*Math.min(dayF+0.25,1);
+      g.drawImage(clouds,cu*clouds.width,0,srcW,clouds.height,px,0,step+0.8,S);
+      g.globalAlpha=1;
+    }
+  }
+  // 边缘暗角（球体感）
+  const dg=g.createRadialGradient(S/2,S/2,R*0.62,S/2,S/2,R);
+  dg.addColorStop(0,'rgba(0,0,0,0)');dg.addColorStop(1,'rgba(0,4,16,.55)');
+  g.fillStyle=dg;g.beginPath();g.arc(S/2,S/2,R,0,TAU);g.fill();
+  g.globalCompositeOperation='destination-in';   // 圆形裁剪：方形贴图边不外露
+  g.fillStyle='#fff';                              // 遮罩须全不透明
+  g.beginPath();g.arc(S/2,S/2,R-0.5,0,TAU);g.fill();
+  g.globalCompositeOperation='source-over';
+  land.globeDirty=false;
+}
+function drawGlobeMode(t){
+  // 星空
+  ctx.fillStyle='#02040A';ctx.fillRect(0,0,W,H);
+  if(fgSpr){
+    const ox=Math.round((((land.yaw*W*0.14)%W)+W)%W);
+    ctx.globalAlpha=0.75;
+    for(let k=0;k<4;k++){ctx.drawImage(fgSpr[k],ox-W,-H*0.04);ctx.drawImage(fgSpr[k],ox,-H*0.04);}
+    ctx.globalAlpha=1;
+  }
+  const cx=W/2,cy=H*0.47,R=Math.min(W,H)*0.46;
+  if(land.globeDirty||!land.globeCv)bakeGlobeView();
+  ctx.drawImage(land.globeCv,cx-R,cy-R,R*2,R*2);
+  // 大气辉光
+  const atm=ctx.createRadialGradient(cx,cy,R*0.93,cx,cy,R*1.09);
+  atm.addColorStop(0,'rgba(110,175,255,0)');atm.addColorStop(0.72,'rgba(110,175,255,.30)');atm.addColorStop(1,'rgba(110,175,255,0)');
+  ctx.fillStyle=atm;ctx.beginPath();ctx.arc(cx,cy,R*1.09,0,TAU);ctx.fill();
+  // 大洲标记
+  ctx.font='12.5px "Segoe UI","Microsoft YaHei",sans-serif';ctx.textAlign='center';
+  for(const c of CONTINENTS){
+    const lam=(c.lon-land.lon0)*DEG,phi=c.lat*DEG;
+    const x3=Math.cos(phi)*Math.sin(lam),y3=Math.sin(phi),z3=Math.cos(phi)*Math.cos(lam);
+    if(z3<0.12)continue;
+    const sx=cx+x3*R,sy=cy-y3*R;
+    const hov=Math.hypot(mouse.x-sx,mouse.y-sy)<26;
+    const pu=0.5+0.5*Math.sin(t*0.004+c.lon);
+    ctx.fillStyle='rgba(241,223,174,.95)';
+    ctx.beginPath();ctx.arc(sx,sy,4.2+pu*1.6,0,TAU);ctx.fill();
+    ctx.strokeStyle='rgba(241,223,174,'+(0.35+0.3*pu).toFixed(2)+')';ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.arc(sx,sy,9+pu*3,0,TAU);ctx.stroke();
+    ctx.fillStyle=hov?'#FFF':'rgba(243,236,220,.92)';
+    ctx.fillText(c.name,sx,sy-16);
+    if(hov){ctx.fillStyle='rgba(241,223,174,.85)';ctx.fillText('点击降落',sx,sy+24);}
+  }
+  // 底部提示
+  ctx.font='13px "Segoe UI","Microsoft YaHei",sans-serif';
+  ctx.fillStyle='rgba(170,190,225,.75)';
+  ctx.fillText('拖动旋转地球 · 点击大洲标记降落',W/2,H-24);
+  if(mouse.x&&mouse.y){mouse.x=mouse.x;mouse.y=mouse.y;}
+}
+function tapContinent(px,py){
+  const cx=W/2,cy=H*0.47,R=Math.min(W,H)*0.46;
+  for(const c of CONTINENTS){
+    const lam=(c.lon-land.lon0)*DEG,phi=c.lat*DEG;
+    const x3=Math.cos(phi)*Math.sin(lam),y3=Math.sin(phi),z3=Math.cos(phi)*Math.cos(lam);
+    if(z3<0.12)continue;
+    const sx=cx+x3*R,sy=cy-y3*R;
+    if(Math.hypot(px-sx,py-sy)<24){startDescent(c);return;}
+  }
+}
+function startDescent(c){
+  land.mode='descent';
+  land.descT=performance.now();
+  land.descC=c;
+  land.fromLon=land.lon0;land.fromLat=land.lat0;
+  tone(523,0.16,'sine',0.05);tone(659,0.2,'sine',0.05,0.14);
+}
+function drawDescent(t){
+  const c=land.descC;
+  const k=clamp((t-land.descT)/2000,0,1);
+  const e2=k*k;
+  // 星空渐隐 + 大气色渐显
+  ctx.fillStyle='#02040A';ctx.fillRect(0,0,W,H);
+  const cx=W/2,cy=H*0.47;
+  let R=Math.min(W,H)*0.46*(1+e2*2.6);
+  const lam=(c.lon-land.fromLon)*DEG*e2,phi=(c.lat-land.fromLat)*DEG*e2;
+  const ccx=cx+Math.sin(lam)*R*0.9,ccy=cy-Math.sin(phi)*R*0.9;
+  if(land.globeDirty||!land.globeCv)bakeGlobeView();
+  ctx.save();ctx.translate(ccx-cx,ccy-cy);
+  ctx.drawImage(land.globeCv,cx-R,cy-R,R*2,R*2);
+  ctx.restore();
+  // 云雾穿层（后半段白雾渐起）
+  if(k>0.45){
+    const wa=clamp((k-0.45)/0.55,0,1);
+    ctx.fillStyle='rgba(228,236,248,'+(wa*0.92).toFixed(3)+')';
+    ctx.fillRect(0,0,W,H);
+    ctx.globalAlpha=wa*0.5;
+    for(let i=0;i<6;i++){
+      const cy2=((t*0.05+i*211)%1)*H;
+      ctx.fillStyle='rgba(255,255,255,.5)';
+      ctx.beginPath();ctx.ellipse((i*0.19%1)*W,cy2,120+i*22,18+i*4,0,0,TAU);ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+  // 完成切地表
+  if(k>=1)enterContinent(c);
+}
+function enterContinent(c){
+  land.mode='surface';
+  land.continent=c.id;
+  land.yaw=0.15;
+  land.samples=landCfg('earth').yaws.map(()=>false);
+  land.g1=null;land.g2=null;land.hills=null;land.dust=[];
+  const cfg=CONTINENT_BY_ID[c.id];
+  scaleFlash=0.85;
+  $('land-title').textContent=c.name+' · 地表';
+  $('land-brief').textContent=LAND_BRIEF[c.id]||'';
+  $('land-from').textContent='收到来自 '+(BRIEF_FROM[c.id]||'地表观测站')+' 的讯息';
+  renderLandTasks();
+  tone(659,0.15,'sine',0.05);tone(784,0.2,'sine',0.05,0.12);
+  toast('已降落：'+c.name+'——'+cfg.task);
 }
 
 /* ── L0 着陆场景 ── */
@@ -2565,7 +2814,8 @@ function drawLand(t,dt){
   }
   if(e>2250&&e<2650)ctx.translate((Math.random()-0.5)*3.4,(Math.random()-0.5)*3.4);   // 触地震屏
   if(land.id==='moon')drawLandMoon(t,seq.drop);
-  else if(land.id==='earth')drawLandEarth(t,seq.drop);
+  else if(land.id==='earth'){drawEarthMode(t,dt,seq);return;}
+  else if(cfg.special==='sun')drawLandSun(t);
   else if(cfg.special==='sun')drawLandSun(t);
   else if(cfg.gas)drawLandGas(t,cfg,seq.drop);
   else drawLandGeneric(t,cfg,seq.drop);
@@ -2582,13 +2832,13 @@ function drawLand(t,dt){
   }
   if(e<2750)drawCraft(W/2,seq.craftY,seq.craftS*(seq.squash||1),seq.flame,t,seq.ground);
   else{
-    drawCraft(W/2,H*0.965,0.62,false,t,true);              // 舱体驻留画面底部
+    drawCraft(W/2,H*0.985,0.92,false,t,true);              // 舱体驻留画面底部（更大更近）
     const bl2=Math.sin(t*0.004)>0.2;                   // 舱顶信标灯
     if(bl2){
       ctx.fillStyle='rgba(255,90,70,.95)';
-      ctx.beginPath();ctx.arc(W/2,H*0.965-0.62*26,2.2,0,TAU);ctx.fill();
+      ctx.beginPath();ctx.arc(W/2,H*0.985-0.92*26,3.2,0,TAU);ctx.fill();
       ctx.strokeStyle='rgba(255,90,70,.35)';ctx.lineWidth=1;
-      ctx.beginPath();ctx.arc(W/2,H*0.965-0.62*26,5,0,TAU);ctx.stroke();
+      ctx.beginPath();ctx.arc(W/2,H*0.985-0.92*26,7,0,TAU);ctx.stroke();
     }
   }
   drawLandDust(t,dt);
@@ -2635,7 +2885,8 @@ function drawLand(t,dt){
   ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
 }
 function drawLandSamples(t,color){
-  const cfg=landCfg(land.id);
+  if(land.id==='earth'&&land.mode!=='surface')return;   // globe/descent：大洲标记单独画
+  const cfg=land.id==='earth'?CONTINENT_BY_ID[land.continent]:landCfg(land.id);
   const gy=H*0.68;
   // 稀有遗物（紫色大菱形，探索彩蛋）
   const rc=RARE[land.id];
@@ -2740,6 +2991,7 @@ function drawLandMoon(t,drop){
   }
 }
 function drawLandEarth(t,drop){
+  const cc=CONTINENT_BY_ID[land.continent]||CONTINENTS[0];
   const yaw=land.yaw,sunYaw=1.2;
   const dayness=Math.cos(yaw-sunYaw);
   const mix=clamp(dayness*0.5+0.5,0,1);
@@ -2790,7 +3042,7 @@ function drawLandEarth(t,drop){
     ctx.globalAlpha=1;
   }else land.clouds=bakeCloudBand();
   // 地表
-  if(!land.g1){land.g1=bakeEarthGround();land.city=bakeCityLights();land.hills=bakeEarthHills();}
+  if(!land.g1){land.g1=bakeEarthGround(cc);land.city=bakeCityLights();land.hills=bakeEarthHills(cc);}
   const off=Math.round((((yaw*W*0.9)%1600)+1600)%1600);
   const hoff=Math.round((((yaw*W*0.34)%1600)+1600)%1600);
   ctx.drawImage(land.hills,-hoff,H*0.3+drop);
@@ -2830,7 +3082,7 @@ function drawLandEarth(t,drop){
       fg2.addColorStop(0,'rgba(212,255,140,'+fa.toFixed(2)+')');fg2.addColorStop(1,'rgba(212,255,140,0)');
       ctx.fillStyle=fg2;ctx.beginPath();ctx.arc(fx2,fy2,4.5,0,TAU);ctx.fill();
     }
-    if(!land.samples[1]){markAuto(1);}
+    if(!land.obsCity){land.obsCity=true;unlockAchv('nightcity');toast('任务达成：找到城市灯火');}
     drawMeteors(t,0);                          // 夜面流星
   }
   if(dayness>0.3)drawVeh({veh:"windsock"},t);
@@ -2847,7 +3099,7 @@ function drawLandEarth(t,drop){
   }
 
   // 日出判定
-  if(dayness>-0.02&&dayness<0.12&&land.sunArmed){land.sunArmed=false;markAuto(0);}
+  if(dayness>-0.02&&dayness<0.12&&land.sunArmed){land.sunArmed=false;unlockAchv('sunrise');toast('任务达成：观看一次日出');}
   if(dayness<-0.4)land.sunArmed=true;
 }
 function markAuto(i){
@@ -3726,6 +3978,13 @@ canvas.addEventListener('pointermove',e=>{
     return;
   }
   if(LAYER===0&&drag){
+    if(land&&land.id==='earth'&&land.mode==='globe'){
+      const dx2=e.clientX-drag.x;
+      land.lon0-=dx2*0.09;
+      land.globeDirty=true;land.lonVel=-dx2*0.09;
+      drag.x=e.clientX;drag.y=e.clientY;
+      return;
+    }
     land.yaw+=(e.clientX-drag.x)*0.0042;
     drag.x=e.clientX;drag.y=e.clientY;
     return;
@@ -3832,7 +4091,9 @@ canvas.addEventListener('dblclick',e=>{
   toast('已回到全景');
 });
 function tapSample(px,py){
-  const cfg=landCfg(land.id);
+  if(land.id==='earth'&&land.mode==='globe'){tapContinent(px,py);return;}
+  if(land.id==='earth')land.continent=land.continent||'asia';
+  const cfg=land.id==='earth'?CONTINENT_BY_ID[land.continent]:landCfg(land.id);
   const gy=H*0.68;
   const rc=RARE[land.id];
   if(rc&&!land.rareFound){
@@ -3852,7 +4113,7 @@ function tapSample(px,py){
     const sx=sampleScreenX(cfg.yaws[i]);
     if(Math.hypot(px-sx,py-gy)<36){
       land.samples[i]=true;
-      const nm2=(SAMPLE_NAMES[land.id]&&SAMPLE_NAMES[land.id][i])||('样本 '+(i+1));
+      const nm2=(SAMPLE_NAMES[land.continent]&&SAMPLE_NAMES[land.continent][i])||('样本 '+(i+1));
       landFx.push({x:sx,y:gy,born:performance.now(),txt:'+ '+nm2});
       try{const sp=JSON.parse(localStorage.getItem('atlas-spec')||'{}');(sp[land.id]=sp[land.id]||{})[nm2]=1;localStorage.setItem('atlas-spec',JSON.stringify(sp));}catch(err){}
       tone(880,0.13,'sine',0.05);
@@ -4085,7 +4346,10 @@ document.addEventListener('pointerdown',e=>{
 
 /* ── 测距工具 ── */
 let measureMode=false,measureA=null,measureB=null;
-$('land-exit').onclick=()=>exitLand();
+$('land-exit').onclick=()=>{
+  if(land&&land.id==='earth'&&land.mode==='surface'){land.mode='globe';land.globeDirty=true;toast('已返回地球轨道视图——点击大洲标记降落');renderLandTasks();return;}
+  exitLand();
+};
 $('btn-measure').onclick=()=>{
   if(LAYER!==1){toast('测距仅支持太阳系内的天体');return;}
   measureMode=!measureMode;
@@ -4398,8 +4662,37 @@ $('btn-snd').onclick=()=>{SND=!SND;syncSndBtn();if(SND){tone(784,0.1,'sine',0.04
 function renderSpecList(){
   let sp={};try{sp=JSON.parse(localStorage.getItem('atlas-spec')||'{}')}catch(e){}
   let rr={};try{rr=JSON.parse(localStorage.getItem('atlas-rare')||'{}')}catch(e){}
-  let h='<div style="font-size:12px;color:var(--dim);margin-bottom:8px">已收集样本 '+Object.values(sp).reduce((a,o)=>a+Object.keys(o).length,0)+' / 39</div>';
-  for(const id of Object.keys(SAMPLE_NAMES)){
+  let h='<div style="font-size:12px;color:var(--dim);margin-bottom:8px">已收集样本 '+Object.values(sp).reduce((a,o)=>a+Object.keys(o).length,0)+' / 60</div>';
+  const contIds=CONTINENTS.map(c=>c.id);
+  for(const id of ['earth',...contIds]){
+    if(CONTINENT_BY_ID[id]){
+      const cc=CONTINENT_BY_ID[id];
+      const names=SAMPLE_NAMES[id];
+      h+='<div style="margin:10px 0 4px;font-size:12.5px;color:#8FB8D8;letter-spacing:1px">地球 · '+cc.name+'</div>';
+      for(const nm of names){
+        const got=sp[id]&&sp[id][nm];
+        h+='<div style="display:flex;gap:8px;padding:4px 0;font-size:12.5px;color:'+(got?'var(--ink)':'rgba(150,170,220,.4)')+'">'
+          +'<span>'+(got?'◆':'◇')+'</span><span>'+nm+(got?'':' · 待采集')+'</span></div>';
+      }
+      continue;
+    }
+    const lbl=landCfg(id).label;
+    const names=SAMPLE_NAMES[id];
+    h+='<div style="margin:10px 0 4px;font-size:12.5px;color:var(--gold);letter-spacing:1px">'+lbl+'</div>';
+    for(const nm of names){
+      const got=sp[id]&&sp[id][nm];
+      h+='<div style="display:flex;gap:8px;padding:4px 0;font-size:12.5px;color:'+(got?'var(--ink)':'rgba(150,170,220,.4)')+'">'
+        +'<span>'+(got?'◆':'◇')+'</span><span>'+nm+(got?'':' · 待采集')+'</span></div>';
+    }
+    const rc=RARE[id];
+    if(rc){
+      const got=rr[id];
+      h+='<div style="display:flex;gap:8px;padding:4px 0;font-size:12.5px;color:'+(got?'#D8C0F8':'rgba(150,170,220,.4)')+'">'
+        +'<span>'+(got?'✦':'✧')+'</span><span>遗物 · '+rc.name+(got?'':' · 待发现')+'</span></div>';
+    }
+  }
+  if(false){
+    for(const id of Object.keys(SAMPLE_NAMES)){
     const lbl=landCfg(id).label;
     const names=SAMPLE_NAMES[id];
     h+='<div style="margin:10px 0 4px;font-size:12.5px;color:var(--gold);letter-spacing:1px">'+lbl+'</div>';
@@ -4416,6 +4709,7 @@ function renderSpecList(){
     }
   }
   $('spec-list').innerHTML=h;
+}
 }
 document.addEventListener('click',e=>{
   const tb=e.target.closest('.dbg-tab');
