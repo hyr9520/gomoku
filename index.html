@@ -212,7 +212,14 @@
   #land-hint b{color:var(--gold)}
   .lt{cursor:pointer}
   body.land-mode nav#planet-nav,body.land-mode .time-dock,body.land-mode header,body.land-mode #hint{display:none}
-  body.land-mode #land-exit{display:block}
+  body.land-mode #land-exit,body.land-mode #land-cam{display:block}
+  #land-cam{
+    display:none;position:fixed;top:14px;right:110px;z-index:36;
+    padding:8px 16px;border:1px solid rgba(229,181,103,.5);border-radius:9px;
+    color:var(--gold);font-size:12px;letter-spacing:2px;background:rgba(9,13,26,.85);
+    cursor:pointer;transition:background .2s;
+  }
+  #land-cam:hover{background:rgba(40,48,72,.9)}
   #land-exit{
     display:none;position:fixed;top:14px;right:14px;z-index:36;
     padding:8px 16px;border:1px solid rgba(229,181,103,.5);border-radius:9px;
@@ -578,6 +585,7 @@
   <div id="land-tasks"></div>
 </div>
 <div id="land-compass"><div id="land-compass-inner"></div></div>
+<button id="land-cam">机位 · 观察位</button>
 <button id="land-exit">返回轨道</button>
 <div id="land-hint">继续放大，降落至 <b id="lh-name">月球</b> 的表面</div>
 
@@ -1030,7 +1038,7 @@ function bakeEarthGround(cc){
   tintGround(g,W2,H2,pal.top,0.045,0.08,0.13,7152,0.2);
   const rnd=mulberry(7150);
   const GF={terraces:bakeGF_terraces,alps:bakeGF_alps,savanna:bakeGF_savanna,canyon:bakeGF_canyon,rainforest:bakeGF_rainforest,beach:bakeGF_beach,ice:bakeGF_ice};
-  if(cc&&GF[cc.feat])GF[cc.feat](g,W2,H2,rnd,pal);
+  if(cc&&GF[cc.feat])GF[cc.feat](g,W2,H2,rnd,pal,cc);
   return c;
 }
 function bakeEarthHills(cc){
@@ -1351,7 +1359,31 @@ const CONTINENTS=[
  {id:'antarctica',name:'南极洲',lat:-76,lon:40,
   sky:['#1A2238','#34406A'],ground:{top:'#E8F0F8',mid:'#C8D8E8',low:'#8FA8C4'},hill:'#D8E4F0',aurora:true,
   feat:'ice',task:'采集冰芯样本',brief:'极夜边缘的冰盖上空有极光。冰芯封着一百万年前的空气——采集三段冰样。',
-  names:['AN-01 冰芯样本','AN-02 极光期大气瓶','AN-03 企鹅聚落羽毛'],yaws:[0.7,2.35,4.15]}
+  names:['AN-01 冰芯样本','AN-02 极光期大气瓶','AN-03 企鹅聚落羽毛'],yaws:[0.7,2.35,4.15]},
+ {id:'everest',name:'珠峰大本营',lat:28,lon:86.9,kind:'poi',
+  sky:['#D8E4F0','#9AB4CC'],ground:{top:'#B8C4CC',mid:'#8C98A4',low:'#5A6674'},hill:'#C8D4DC',
+  feat:'alps',task:'采集高海拔冰雪样本',brief:'海拔五千二，风雪不歇。珠峰北坳就在头顶——采集三份冰川样本，注意你的血氧。',
+  names:['EV-01 昆布冰川冰','EV-02 高山岩石碎屑','EV-03 风暴雪晶'],yaws:[0.6,2.3,4.0]},
+ {id:'sahara',name:'撒哈拉沙海',lat:23.4,lon:12.5,kind:'poi',
+  sky:['#F0D8A8','#D0A860'],ground:{top:'#E8C880',mid:'#C8A050',low:'#886830'},hill:'#C8A860',
+  feat:'canyon',task:'采集沙丘样本',brief:'流沙之海，直抵天际。晨光下沙脊投出锐利明暗——采集三份不同深度的沙丘样本。',
+  names:['SH-01 沙丘脊沙','SH-02 丘间盆地沙','SH-03 化石沙漠砂岩'],yaws:[0.7,2.4,4.1]},
+ {id:'reef',name:'大堡礁礁盘',lat:-18.3,lon:147.7,kind:'poi',
+  sky:['#90D0E8','#58A8D0'],ground:{top:'#E8E0C0',mid:'#D0C898',low:'#B0A870'},hill:'#D0C8A0',
+  feat:'beach',task:'采集珊瑚沙样本',brief:'礁环清澈见底。退潮后礁坪露出——采集三份珊瑚沙与贝壳样本，留意潮汐回涨。',
+  names:['GB-01 珊瑚枝砂','GB-02 礁坪贝壳砂','GB-03 洁白沙滩砂'],yaws:[0.55,2.2,4.05]},
+ {id:'iceland',name:'冰岛火山带',lat:64.9,lon:-18.6,kind:'poi',
+  sky:['#28324A','#40506E'],ground:{top:'#3E444C',mid:'#2C323A',low:'#1A2028'},hill:'#4A525C',aurora:true,
+  feat:'ice',task:'采集火山冰样本',brief:'黑沙与冰川同岛共存，夜里极光垂落。在大西洋中脊裂谷带取样——这里地壳最薄。',
+  names:['IS-01 黑沙火山灰','IS-02 冰川裂隙冰','IS-03 地热硫晶体'],yaws:[0.65,2.3,4.1]},
+ {id:'uyuni',name:'乌尤尼盐沼',lat:-20.1,lon:-66.8,kind:'poi',
+  sky:['#C8DCE8','#9ABCD4'],ground:{top:'#F4F8FC',mid:'#E4ECF4',low:'#C8D8E8'},hill:'#E8F0F8',
+  feat:'ice',task:'采集盐壳样本',brief:'天空之镜。雨季后薄水覆面，云朵倒映脚下，盐壳厚达十米——采集三份盐样。',
+  names:['UY-01 盐壳结晶','UY-02 卤水镁盐','UY-03 层状石膏'],yaws:[0.6,2.35,4.1]},
+ {id:'kilimanjaro',name:'乞力马扎罗山脚',lat:-3.1,lon:37,kind:'poi',
+  sky:['#E8C8A0','#C89058'],ground:{top:'#A8A850',mid:'#887838',low:'#584820'},hill:'#B8B890',
+  feat:'savanna',task:'采集草原样本',brief:'非洲之巅的雪冠在云上隐现。象群迁徙路线正途经此地——沿海拔梯度采集三份样本。',
+  names:['KJ-01 高地草籽','KJ-02 火山灰壤','KJ-03 云雾林叶片'],yaws:[0.7,2.4,4.15]}
 ];
 const CONTINENT_BY_ID={};CONTINENTS.forEach(c=>CONTINENT_BY_ID[c.id]=c);
 const SAMPLE_NAMES={
@@ -1396,6 +1428,12 @@ const LAND_BRIEF={
   samerica:'地球之肺的心脏地带。冠层之下藏着全球最密集的生命——轻装深入，采集三份样本。',
   oceania:'大堡礁的外缘沙滩。海风很咸——采集珊瑚沙与桉树叶，潮汐表在站内。',
   antarctica:'极夜边缘的冰盖上空有极光。冰芯封着一百万年前的空气——采集三段冰样。',
+  everest:'海拔五千二，风雪不歇。珠峰北坳就在头顶——采集三份冰川样本，注意你的血氧。',
+  sahara:'流沙之海，直抵天际。晨光下沙脊投出锐利明暗——采集三份不同深度的沙丘样本。',
+  reef:'礁环清澈见底。退潮后礁坪露出——采集三份珊瑚沙与贝壳样本，留意潮汐回涨。',
+  iceland:'黑沙与冰川同岛共存，夜里极光垂落。在大西洋中脊裂谷带取样——这里地壳最薄。',
+  uyuni:'天空之镜。雨季后薄水覆面，云朵倒映脚下，盐壳厚达十米——采集三份盐样。',
+  kilimanjaro:'非洲之巅的雪冠在云上隐现。象群迁徙路线正途经此地——沿海拔梯度采集三份样本。',
   moon:'静海补给站失联前发来最后一讯：地表散落着三件科研样本。找到并回收它们。',
   earth:'风暴观测站的气象阵列被吹坏了。跨过晨昏线校准日出标记，再采集一份植物样本。',
   mars:'轨道器传回异常读数。驾驶火星车抵达三处信号源，采集岩石样本。',
@@ -2613,18 +2651,31 @@ function drawGlobeMode(t){
     const sx=cx+x3*R,sy=cy-y3*R;
     const hov=Math.hypot(mouse.x-sx,mouse.y-sy)<26;
     const pu=0.5+0.5*Math.sin(t*0.004+c.lon);
-    ctx.fillStyle='rgba(241,223,174,.95)';
-    ctx.beginPath();ctx.arc(sx,sy,4.2+pu*1.6,0,TAU);ctx.fill();
-    ctx.strokeStyle='rgba(241,223,174,'+(0.35+0.3*pu).toFixed(2)+')';ctx.lineWidth=1.4;
-    ctx.beginPath();ctx.arc(sx,sy,9+pu*3,0,TAU);ctx.stroke();
-    ctx.fillStyle=hov?'#FFF':'rgba(243,236,220,.92)';
-    ctx.fillText(c.name,sx,sy-16);
-    if(hov){ctx.fillStyle='rgba(241,223,174,.85)';ctx.fillText('点击降落',sx,sy+24);}
+    if(c.kind==='poi'){                       // POI：青色菱形小标记
+      ctx.save();ctx.translate(sx,sy);ctx.rotate(Math.PI/4);
+      ctx.fillStyle='rgba(140,228,238,.95)';
+      const ds=3.2+pu*1.3;ctx.fillRect(-ds,-ds,ds*2,ds*2);
+      ctx.restore();
+      ctx.strokeStyle='rgba(140,228,238,'+(0.3+0.3*pu).toFixed(2)+')';ctx.lineWidth=1.2;
+      ctx.beginPath();ctx.arc(sx,sy,7+pu*2.4,0,TAU);ctx.stroke();
+      ctx.font='11.5px "Segoe UI","Microsoft YaHei",sans-serif';
+      ctx.fillStyle=hov?'#FFF':'rgba(210,238,242,.9)';
+      ctx.fillText(c.name,sx,sy-13);
+      if(hov){ctx.fillStyle='rgba(140,228,238,.9)';ctx.fillText('点击降落',sx,sy+22);}
+    }else{
+      ctx.fillStyle='rgba(241,223,174,.95)';
+      ctx.beginPath();ctx.arc(sx,sy,4.2+pu*1.6,0,TAU);ctx.fill();
+      ctx.strokeStyle='rgba(241,223,174,'+(0.35+0.3*pu).toFixed(2)+')';ctx.lineWidth=1.4;
+      ctx.beginPath();ctx.arc(sx,sy,9+pu*3,0,TAU);ctx.stroke();
+      ctx.fillStyle=hov?'#FFF':'rgba(243,236,220,.92)';
+      ctx.fillText(c.name,sx,sy-16);
+      if(hov){ctx.fillStyle='rgba(241,223,174,.85)';ctx.fillText('点击降落',sx,sy+24);}
+    }
   }
   // 底部提示
   ctx.font='13px "Segoe UI","Microsoft YaHei",sans-serif';
   ctx.fillStyle='rgba(170,190,225,.75)';
-  ctx.fillText('拖动旋转地球 · 点击大洲标记降落',W/2,H-24);
+  ctx.fillText('拖动旋转地球 · 点击标记降落 · 13 处着陆点',W/2,H-24);
   if(mouse.x&&mouse.y){mouse.x=mouse.x;mouse.y=mouse.y;}
 }
 function tapContinent(px,py){
@@ -2634,7 +2685,7 @@ function tapContinent(px,py){
     const x3=Math.cos(phi)*Math.sin(lam),y3=Math.sin(phi),z3=Math.cos(phi)*Math.cos(lam);
     if(z3<0.12)continue;
     const sx=cx+x3*R,sy=cy-y3*R;
-    if(Math.hypot(px-sx,py-sy)<24){startDescent(c);return;}
+    if(Math.hypot(px-sx,py-sy)<(c.kind==='poi'?20:24)){startDescent(c);return;}
   }
 }
 function startDescent(c){
@@ -2888,7 +2939,7 @@ function drawLand(t,dt){
 function drawLandSamples(t,color){
   if(land.id==='earth'&&land.mode!=='surface')return;   // globe/descent：大洲标记单独画
   const cfg=land.id==='earth'?CONTINENT_BY_ID[land.continent]:landCfg(land.id);
-  const gy=H*0.68;
+  const gy=(land.camP?land.camP.hy:0.46)*H+H*0.22;
   // 稀有遗物（紫色大菱形，探索彩蛋）
   const rc=RARE[land.id];
   if(rc&&!land.rareFound){
@@ -3084,7 +3135,7 @@ function bakeGF_savanna(g,W2,H2,rnd,pal){
     g.beginPath();g.ellipse(x+(rnd()-0.5)*4,base-h*1.0,h*0.55,h*0.1,0,0,TAU);g.fill();
   }
 }
-function bakeGF_canyon(g,W2,H2,rnd,pal){
+function bakeGF_canyon(g,W2,H2,rnd,pal,cc){
   const bands=['#C06838','#A85028','#8A4020','#B86030','#783818'];
   for(let y=H2*0.05,i=0;y<H2;y+=H2*(0.07+rnd()*0.05),i++){   // 沉积层
     g.fillStyle=bands[i%5];g.globalAlpha=0.35;
@@ -3104,13 +3155,20 @@ function bakeGF_canyon(g,W2,H2,rnd,pal){
     g.fillStyle='#6E3418';
     g.beginPath();g.moveTo(x-r,y);g.lineTo(x-r*0.4,y-r*0.8);g.lineTo(x+r*0.7,y-r*0.5);g.lineTo(x+r,y);g.closePath();g.fill();
   }
-  for(let i=0;i<6;i++){                        // 仙人掌
-    const x=rnd()*W2,y=H2*0.5+rnd()*H2*0.45,h=14+rnd()*22;
-    g.strokeStyle='#2E5426';g.lineWidth=4+rnd()*3;g.lineCap='round';
-    g.beginPath();g.moveTo(x,y);g.lineTo(x,y-h);g.stroke();
-    g.beginPath();g.moveTo(x,y-h*0.55);g.quadraticCurveTo(x+h*0.4,y-h*0.6,x+h*0.4,y-h*0.85);g.stroke();
-    g.beginPath();g.moveTo(x,y-h*0.35);g.quadraticCurveTo(x-h*0.35,y-h*0.4,x-h*0.35,y-h*0.6);g.stroke();
-    g.lineCap='butt';
+  if(!cc||cc.id==='namerica'){                 // 仙人掌（仅北美索诺兰）
+    for(let i=0;i<6;i++){
+      const x=rnd()*W2,y=H2*0.5+rnd()*H2*0.45,h=14+rnd()*22;
+      g.strokeStyle='#2E5426';g.lineWidth=4+rnd()*3;g.lineCap='round';
+      g.beginPath();g.moveTo(x,y);g.lineTo(x,y-h);g.stroke();
+      g.beginPath();g.moveTo(x,y-h*0.55);g.quadraticCurveTo(x+h*0.4,y-h*0.6,x+h*0.4,y-h*0.85);g.stroke();
+      g.beginPath();g.moveTo(x,y-h*0.35);g.quadraticCurveTo(x-h*0.35,y-h*0.4,x-h*0.35,y-h*0.6);g.stroke();
+      g.lineCap='butt';
+    }
+  }else{                                       // 撒哈拉枯灌木
+    for(let i=0;i<9;i++){
+      g.fillStyle='rgba(120,100,50,.65)';
+      g.beginPath();g.ellipse(rnd()*W2,H2*0.5+rnd()*H2*0.45,7+rnd()*12,3+rnd()*5,0,0,TAU);g.fill();
+    }
   }
   g.strokeStyle='rgba(50,22,10,.22)';g.lineWidth=1;
   for(let i=0;i<14;i++){                       // 侵蚀细纹
@@ -3217,7 +3275,8 @@ function bakeGF_beach(g,W2,H2,rnd,pal){
   for(let x=0;x<=W2;x+=40)g.lineTo(x,H2*0.335+Math.sin(x*0.02+0.7)*4);
   g.stroke();g.globalAlpha=1;
 }
-function bakeGF_ice(g,W2,H2,rnd,pal){
+function bakeGF_ice(g,W2,H2,rnd,pal,cc){
+  const isAntarctica=!cc||cc.id==='antarctica';
   for(let i=0;i<7;i++){                        // 远处冰山
     const x=rnd()*W2,y=H2*0.12+rnd()*H2*0.2,w=60+rnd()*130,h=20+rnd()*40;
     g.fillStyle='rgba(220,235,250,.9)';
@@ -3240,7 +3299,7 @@ function bakeGF_ice(g,W2,H2,rnd,pal){
     g.bezierCurveTo(W2*0.4,y-8,W2*0.6,y+10,W2*(0.7+rnd()*0.25),y);
     g.stroke();
   }
-  for(let i=0;i<8;i++){                        // 企鹅聚落
+  for(let i=0;i<8&&isAntarctica;i++){          // 企鹅聚落（仅南极）
     const px=rnd()*W2,py=H2*0.55+rnd()*H2*0.35,ps=3+rnd()*4;
     g.fillStyle='#1A2028';
     g.beginPath();g.ellipse(px,py,ps*0.6,ps,0,0,TAU);g.fill();
@@ -3256,26 +3315,27 @@ function bakeGF_ice(g,W2,H2,rnd,pal){
     g.stroke();
   }
 }
-function drawContinentSky(t,mix){
+function drawContinentSky(t,mix,hhPx){
   const cc=CONTINENT_BY_ID[land.continent];
   if(!cc||!cc.aurora||mix>=0.6)return;         // 极光帘幕（夜面）
   const au=clamp((0.6-mix)/0.6,0,1);
+  const aBase=(hhPx||H*0.3)+H*0.14;
   for(let b=0;b<3;b++){
     const bx=W*(0.22+b*0.28)+Math.sin(t*0.00035+b*2.1)*W*0.08;
     const bw=W*(0.09+0.04*Math.sin(t*0.0005+b*1.3));
-    const ag=ctx.createLinearGradient(0,H*0.08,0,H*0.44);
+    const ag=ctx.createLinearGradient(0,H*0.08,0,aBase);
     ag.addColorStop(0,'rgba(150,90,200,0)');
     ag.addColorStop(0.55,'rgba(120,230,160,'+(0.3*au).toFixed(2)+')');
     ag.addColorStop(0.85,'rgba(90,255,170,'+(0.42*au).toFixed(2)+')');
     ag.addColorStop(1,'rgba(90,255,170,0)');
     ctx.fillStyle=ag;
-    ctx.beginPath();ctx.moveTo(bx-bw,H*0.44);
+    ctx.beginPath();ctx.moveTo(bx-bw,aBase);
     for(let x=-bw;x<=bw;x+=bw*0.2)ctx.lineTo(bx+x,H*(0.1+0.05*Math.sin(x*0.02+t*0.001+b*3)));
-    ctx.lineTo(bx+bw,H*0.44);ctx.closePath();ctx.fill();
+    ctx.lineTo(bx+bw,aBase);ctx.closePath();ctx.fill();
     ctx.strokeStyle='rgba(140,255,190,'+(0.16*au).toFixed(2)+')';ctx.lineWidth=2;
     for(let v=0;v<6;v++){                      // 帘幕竖纹
       const vx=bx-bw+bw*2*(v+0.5)/6+Math.sin(t*0.0007+v+b)*8;
-      ctx.beginPath();ctx.moveTo(vx,H*0.4);ctx.lineTo(vx,H*(0.14+0.04*Math.sin(t*0.001+v*2.4+b)));
+      ctx.beginPath();ctx.moveTo(vx,aBase-H*0.04);ctx.lineTo(vx,H*(0.14+0.04*Math.sin(t*0.001+v*2.4+b)));
       ctx.stroke();
     }
   }
@@ -3293,19 +3353,24 @@ function drawContinentGroundFx(t,drop,cc){
   {                                            // 远端地平雾（昼强夜弱）
     const mix0=clamp(Math.cos(land.yaw-1.2)*0.5+0.5,0,1);
     const fga=0.18+0.2*mix0;
-    const fg2=ctx.createLinearGradient(0,H*0.46+drop,0,H*0.57+drop);
+    const fogY=land.camP?land.camP.hy*H:H*0.46;
+    const fg2=ctx.createLinearGradient(0,fogY+drop,0,fogY+H*0.11+drop);
     fg2.addColorStop(0,'rgba(198,208,220,'+fga.toFixed(2)+')');
     fg2.addColorStop(1,'rgba(198,208,220,0)');
-    ctx.fillStyle=fg2;ctx.fillRect(0,H*0.46+drop,W,H*0.11);
+    ctx.fillStyle=fg2;ctx.fillRect(0,fogY+drop,W,H*0.11);
   }
   if(cc.feat==='savanna'){                     // 象群迁徙（剪影+腿摆动）
     for(let i=0;i<3;i++){
       const ex=((t*0.00002+i*0.42)%1.35-0.18)*W;
       if(ex<-80||ex>W+80)continue;
-      const ey=H*0.585+drop+i*7,es=0.8+i*0.16;
+      const ey=(land.camP?land.camP.hy*H:H*0.46)+H*0.125+drop+i*7,es=0.8+i*0.16;
       ctx.fillStyle='rgba(38,34,30,.9)';
       ctx.beginPath();ctx.ellipse(ex,ey-14*es,17*es,11*es,0,0,TAU);ctx.fill();
       ctx.beginPath();ctx.ellipse(ex+15*es,ey-19*es,7*es,6.5*es,0,0,TAU);ctx.fill();
+      {                                          // 耳朵扇动
+        const ear=0.6+0.4*Math.sin(t*0.006+i*1.7);
+        ctx.beginPath();ctx.ellipse(ex+11*es,ey-20*es,6.5*es*ear,7.5*es,0,0,TAU);ctx.fill();
+      }
       ctx.strokeStyle='rgba(38,34,30,.9)';ctx.lineWidth=2.6*es;ctx.lineCap='round';
       ctx.beginPath();ctx.moveTo(ex+19*es,ey-16*es);
       ctx.quadraticCurveTo(ex+24*es,ey-10*es,ex+22*es+Math.sin(t*0.004+i)*2,ey-3*es);
@@ -3319,7 +3384,7 @@ function drawContinentGroundFx(t,drop,cc){
   }
   if(cc.feat==='beach'){                       // 浪花拍岸
     for(let i=0;i<2;i++){
-      const wy=H*(0.5+i*0.035)+drop+Math.sin(t*0.0011+i*2.6)*4;
+      const wy=(land.camP?land.camP.hy*H:H*0.46)+H*(0.04+i*0.035)+drop+Math.sin(t*0.0011+i*2.6)*4;
       const wa=0.4+0.25*Math.sin(t*0.0016+i*1.9);
       ctx.strokeStyle='rgba(235,250,255,'+wa.toFixed(2)+')';
       ctx.lineWidth=3-i*0.7;
@@ -3329,13 +3394,13 @@ function drawContinentGroundFx(t,drop,cc){
     }
   }
   if(cc.feat==='terraces'){                    // 白鹭掠过水田
-    const bx2=W*0.2+((t*0.018)%W)*0.55,by2=H*0.36+Math.sin(t*0.0011)*8;
+    const bx2=W*0.2+((t*0.018)%W)*0.55,by2=(land.camP?land.camP.hh*H:H*0.3)+H*0.06+Math.sin(t*0.0011)*8;
     drawSoarBird(t,bx2,by2,7,0.1,'rgba(250,250,248,.92)');
     drawSoarBird(t,bx2-42,by2+15,5.5,0.12,'rgba(248,248,246,.8)');
   }
   if(cc.feat==='savanna'){                     // 远处尘烟+秃鹫盘旋
     for(let i=0;i<2;i++){
-      const px=W*(0.3+i*0.35),py=H*0.45;
+      const px=W*(0.3+i*0.35),py=(land.camP?land.camP.hh*H:H*0.3)+H*0.15;
       const sway=Math.sin(t*0.0004+i*2)*6;
       ctx.fillStyle='rgba(185,155,115,.11)';
       ctx.beginPath();
@@ -3345,16 +3410,16 @@ function drawContinentGroundFx(t,drop,cc){
       ctx.quadraticCurveTo(px+18+sway,py-28,px+9+sway,py);
       ctx.closePath();ctx.fill();
     }
-    const scx=W*0.5+Math.cos(t*0.00018)*70,scy=H*0.24+Math.sin(t*0.00018)*16;
+    const scx=W*0.5+Math.cos(t*0.00018)*70,scy=(land.camP?land.camP.hh*H:H*0.3)*0.8+H*0.03+Math.sin(t*0.00018)*16;
     drawSoarBird(t,scx,scy,9,Math.cos(t*0.00018+1.57)*0.3,'rgba(30,26,22,.8)');
   }
   if(cc.feat==='canyon'){                      // 盘旋鹰
-    const cx2=W*0.35+Math.cos(t*0.00022)*60,cy2=H*0.26+Math.sin(t*0.00022)*12;
+    const cx2=W*0.35+Math.cos(t*0.00022)*60,cy2=(land.camP?land.camP.hh*H:H*0.3)*0.8+H*0.05+Math.sin(t*0.00022)*12;
     drawSoarBird(t,cx2,cy2,8,Math.cos(t*0.00022+1.57)*0.3,'rgba(28,24,20,.85)');
   }
   if(cc.feat==='rainforest'){                  // 林间薄雾层
     for(let i=0;i<2;i++){
-      const my=H*(0.52+i*0.06);
+      const my=(land.camP?land.camP.hy*H:H*0.46)+H*(0.06+i*0.06);
       const mx=W*0.5+Math.sin(t*0.0002+i*2.4)*W*0.18;
       const mg2=ctx.createRadialGradient(mx,my,0,mx,my,200);
       mg2.addColorStop(0,'rgba(210,228,222,'+(0.1-i*0.03).toFixed(2)+')');
@@ -3365,14 +3430,14 @@ function drawContinentGroundFx(t,drop,cc){
   }
   if(cc.feat==='beach'){                       // 帆船缓移+海鸥
     const sx=((t*0.02)%(W*1.25))-W*0.12;
-    const sy=H*0.475+Math.sin(t*0.0005)*3;
+    const sy=(land.camP?land.camP.hy*H:H*0.46)+H*0.015+Math.sin(t*0.0005)*3;
     ctx.fillStyle='rgba(245,248,250,.92)';
     ctx.beginPath();ctx.moveTo(sx,sy-14);ctx.quadraticCurveTo(sx+9,sy-6,sx,sy-2);ctx.closePath();ctx.fill();
     ctx.strokeStyle='rgba(90,80,70,.8)';ctx.lineWidth=1.4;
     ctx.beginPath();ctx.moveTo(sx,sy-15);ctx.lineTo(sx,sy);ctx.stroke();
     ctx.beginPath();ctx.moveTo(sx-7,sy);ctx.quadraticCurveTo(sx,sy+3,sx+7,sy);ctx.stroke();
-    drawSoarBird(t,W*(0.25+((t*0.02)%1)*0.3),H*0.42+Math.sin(t*0.001)*5,6,0,'rgba(40,46,54,.7)');
-    drawSoarBird(t,W*(0.8-((t*0.016)%1)*0.3),H*0.39+Math.sin(t*0.0013+2)*4,5,0,'rgba(40,46,54,.6)');
+    drawSoarBird(t,W*(0.25+((t*0.02)%1)*0.3),(land.camP?land.camP.hh*H:H*0.3)+H*0.12+Math.sin(t*0.001)*5,6,0,'rgba(40,46,54,.7)');
+    drawSoarBird(t,W*(0.8-((t*0.016)%1)*0.3),(land.camP?land.camP.hh*H:H*0.3)+H*0.09+Math.sin(t*0.0013+2)*4,5,0,'rgba(40,46,54,.6)');
   }
   if(cc.feat==='ice'){                         // 极地风雪（斜向横扫）
     ctx.lineWidth=1;
@@ -3384,10 +3449,73 @@ function drawContinentGroundFx(t,drop,cc){
       ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+ln,sy+ln*0.32);ctx.stroke();
     }
   }
+  {                                            // 世界坐标→屏幕（跟随平移缩放）
+    const CP=land.camP;
+    if(CP){
+      const zg=CP.zg;
+      const off2=Math.round((((land.yaw*W*0.9)%1600)+1600)%1600);
+      const gw=1600*zg;
+      const w2s=(wx,wy)=>({x:((wx*zg-off2*zg)%gw+gw)%gw,y:CP.hy*H+wy*zg});
+      if(cc.feat==='rainforest'){              // 瀑布流光下坠
+        for(let i=0;i<3;i++){
+          const fy=CP.hy*H+H*0.16*zg+((t*0.12+i*H*0.11)% (H*0.34*zg));
+          const fa=0.45+0.4*Math.sin(t*0.01+i*2.2);
+          ctx.fillStyle='rgba(240,250,255,'+fa.toFixed(2)+')';
+          ctx.fillRect(((992*zg-off2*zg)%gw+gw)%gw-4+i*4,fy,1.6,6+i*2);
+        }
+      }
+      if(cc.feat==='alps'){                    // 木屋炊烟
+        for(let i=0;i<2;i++){
+          const b2=w2s(i?1120:480,H*0.62*(0.42+i*0.14)-16);
+          for(let p2=0;p2<3;p2++){
+            const k2=((t*0.00035+p2/3+i*0.2)%1);
+            const px2=b2.x+Math.sin(k2*6+i*2+t*0.0006)*7*k2;
+            ctx.fillStyle='rgba(205,210,220,'+(0.26*(1-k2)).toFixed(2)+')';
+            ctx.beginPath();ctx.arc(px2,b2.y-k2*46,2.5+k2*5,0,TAU);ctx.fill();
+          }
+        }
+      }
+      if(cc.feat==='terraces'){                // 水田反光闪烁
+        for(let i=0;i<4;i++){
+          const b2=w2s(200+i*380,H*0.62*(0.15+i*0.13));
+          const fa=0.35+0.3*Math.sin(t*0.004+i*2.6);
+          if(fa>0.37){
+            ctx.fillStyle='rgba(220,240,255,'+fa.toFixed(2)+')';
+            ctx.fillRect(b2.x,b2.y,10+i*4,1.4);
+          }
+        }
+      }
+    }
+  }
+}
+const LAND_CAMS=[
+  {hy:0.46,hh:0.30,zg:1.0,zh:1.0,label:'观察位'},
+  {hy:0.60,hh:0.47,zg:1.16,zh:1.1,label:'舱内低机位'},
+  {hy:0.37,hh:0.19,zg:1.32,zh:1.18,label:'高空俯瞰'}
+];
+function cycleCam(){
+  if(!land||land.mode!=='surface')return;
+  if(!land.camP)land.camP={hy:LAND_CAMS[0].hy,hh:LAND_CAMS[0].hh,zg:1.0,zh:1.0};
+  land.cam=((land.cam||0)+1)%LAND_CAMS.length;
+  land.camAnim={from:{hy:land.camP.hy,hh:land.camP.hh,zg:land.camP.zg,zh:land.camP.zh},to:LAND_CAMS[land.cam],t0:performance.now()};
+  try{tone(740,0.08,'sine',0.04);}catch(e){}
+  toast('机位切换：'+LAND_CAMS[land.cam].label+'（E 键切换）');
+  const b=document.getElementById('land-cam');
+  if(b)b.textContent='机位 · '+LAND_CAMS[land.cam].label;
 }
 function drawLandEarth(t,drop){
   const cc=CONTINENT_BY_ID[land.continent]||CONTINENTS[0];
   const yaw=land.yaw,sunYaw=1.2;
+  if(!land.camP)land.camP={hy:LAND_CAMS[0].hy,hh:LAND_CAMS[0].hh,zg:1.0,zh:1.0};
+  if(land.camAnim){
+    const k=Math.min((performance.now()-land.camAnim.t0)/650,1);
+    const e2=k*k*(3-2*k);
+    const F=land.camAnim.from,T=land.camAnim.to;
+    land.camP={hy:F.hy+(T.hy-F.hy)*e2,hh:F.hh+(T.hh-F.hh)*e2,zg:F.zg+(T.zg-F.zg)*e2,zh:F.zh+(T.zh-F.zh)*e2};
+    if(k>=1)land.camAnim=null;
+  }
+  const camP=land.camP;
+  const hyPx=H*camP.hy,hhPx=H*camP.hh;
   const dayness=Math.cos(yaw-sunYaw);
   const mix=clamp(dayness*0.5+0.5,0,1);
   // 天空：昼蓝 ↔ 夜黑
@@ -3438,13 +3566,14 @@ function drawLandEarth(t,drop){
     ctx.drawImage(land.clouds,2400-coff,-H*0.02);
     ctx.globalAlpha=1;
   }else land.clouds=bakeCloudBand();
-  drawContinentSky(t,mix);
+  drawContinentSky(t,mix,hhPx);
   // 地表
   if(!land.g1){land.g1=bakeEarthGround(cc);land.city=bakeCityLights(cc.feat);land.hills=bakeEarthHills(cc);}
   const off=Math.round((((yaw*W*0.9)%1600)+1600)%1600);
   const hoff=Math.round((((yaw*W*0.34)%1600)+1600)%1600);
-  ctx.drawImage(land.hills,-hoff,H*0.3+drop);
-  ctx.drawImage(land.hills,1600-hoff,H*0.3+drop);
+  const hw=1600*camP.zh,hh2=H*0.3*camP.zh;
+  ctx.drawImage(land.hills,-hoff*camP.zh,hhPx+drop,hw,hh2);
+  ctx.drawImage(land.hills,hw-hoff*camP.zh,hhPx+drop,hw,hh2);
   // 云影（大面积柔影缓慢扫过地表）
   const csx=(((t*0.02)%2400)-300)*1;
   ctx.globalAlpha=0.1;
@@ -3452,23 +3581,25 @@ function drawLandEarth(t,drop){
   ctx.beginPath();ctx.ellipse(csx,H*0.62,320,60,0,0,TAU);ctx.fill();
   ctx.beginPath();ctx.ellipse(((csx+900)%2400)-300,H*0.55,260,48,0,0,TAU);ctx.fill();
   ctx.globalAlpha=1;
-  ctx.drawImage(land.g1,-off,H*0.46+drop);
-  ctx.drawImage(land.g1,1600-off,H*0.46+drop);
+  const gw=1600*camP.zg,gh2=H*0.62*camP.zg;
+  ctx.drawImage(land.g1,-off*camP.zg,hyPx+drop,gw,gh2);
+  ctx.drawImage(land.g1,gw-off*camP.zg,hyPx+drop,gw,gh2);
   drawContinentGroundFx(t,drop,cc);
   // 城市灯火（夜面；南极冰原无城市天际线）
   if(dayness<-0.05&&cc.feat!=='ice'){
     ctx.globalAlpha=clamp(-dayness*1.6,0,1);
-    ctx.drawImage(land.city,-off,H*0.52+drop);
-    ctx.drawImage(land.city,1600-off,H*0.52+drop);
+    const cw2=1600*camP.zg,ch2=H*0.5*camP.zg,cy2=hyPx+H*0.06;
+    ctx.drawImage(land.city,-off*camP.zg,cy2,cw2,ch2);
+    ctx.drawImage(land.city,cw2-off*camP.zg,cy2,cw2,ch2);
     ctx.globalAlpha=1;
     // 灯光闪烁点
     if(window.__cityTw){
       ctx.fillStyle='#FFF4D0';
       for(const tw of window.__cityTw){
-        const twx=((tw.x-off)%1600+1600)%1600;
+        const twx=((tw.x*camP.zg-off*camP.zg)%(1600*camP.zg)+1600*camP.zg)%(1600*camP.zg)-((1600*camP.zg)-W)*0.5;
         const a=0.3+0.7*(0.5+0.5*Math.sin(t*0.006+tw.x));
         ctx.globalAlpha=a*clamp(-dayness*1.6,0,1);
-        ctx.fillRect(twx,tw.y,2,2);
+        ctx.fillRect(twx,cy2+tw.y*camP.zg,2,2);
       }
       ctx.globalAlpha=1;
     }
@@ -4493,7 +4624,7 @@ function tapSample(px,py){
   if(land.id==='earth'&&land.mode==='globe'){tapContinent(px,py);return;}
   if(land.id==='earth')land.continent=land.continent||'asia';
   const cfg=land.id==='earth'?CONTINENT_BY_ID[land.continent]:landCfg(land.id);
-  const gy=H*0.68;
+  const gy=(land.camP?land.camP.hy:0.46)*H+H*0.22;
   const rc=RARE[land.id];
   if(rc&&!land.rareFound){
     const rx=sampleScreenX(rc.yaw);
@@ -4744,6 +4875,7 @@ document.addEventListener('pointerdown',e=>{
 });
 
 /* ── 测距工具 ── */
+$('land-cam').onclick=cycleCam;
 let measureMode=false,measureA=null,measureB=null;
 $('land-exit').onclick=()=>{
   if(land&&land.id==='earth'&&land.mode==='surface'){land.mode='globe';land.globeDirty=true;toast('已返回地球轨道视图——点击大洲标记降落');renderLandTasks();return;}
@@ -4863,6 +4995,7 @@ window.addEventListener('keydown',e=>{
     const order=BODIES.filter(x=>!x.hidden);
     focusBody(order[+e.key-1].id);
   }
+  if((e.key==='e'||e.key==='E')&&LAYER===0&&land&&land.mode==='surface'){cycleCam();return;}
   if(e.key==='v'||e.key==='V')$('btn-snd').click();
   if(e.key==='m'||e.key==='M')$('btn-measure').click();
   if(e.key==='c'||e.key==='C')$('btn-shot').click();
