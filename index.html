@@ -1421,6 +1421,7 @@ function enterLand(id){
   land={id,yaw:0.15,born:performance.now(),pt:performance.now(),phase:'descend',touched:false,
     samples:lc.yaws.map(()=>false),er:false,sunArmed:true,cityArmed:true,g1:null,g2:null,g3:null,dust:[],
     mode:id==='earth'?'globe':'surface',lon0:-100,lat0:18,globeDirty:true,continent:null,lonVel:0};
+  if(id==='earth')unlockAchv('globe');
   LAYER=0;flyAnim=null;zoomAnim=null;inertia.vx=inertia.vy=0;
   scaleFlash=1;scaleLockUntil=performance.now()+900;
   document.body.classList.add('land-mode');
