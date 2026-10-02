@@ -1028,114 +1028,114 @@ function bakeEarthGround(cc){
   g.fillStyle=bg;g.fillRect(0,0,W2,H2);
   tintGround(g,W2,H2,pal.mid,0.06,0.018,0.045,7151,0.45);
   tintGround(g,W2,H2,pal.top,0.045,0.08,0.13,7152,0.2);
-  tintGround(g,W2,H2,'#4E8C5C',0.06,0.018,0.045,7151,0.45);
-  tintGround(g,W2,H2,'#88B890',0.045,0.08,0.13,7152,0.2);
   const rnd=mulberry(7150);
-  for(let i=0;i<9;i++){                       // 草地色斑（有机质感）
-    g.globalAlpha=0.12;
-    g.fillStyle=rnd()>0.5?'#5C8C64':'#2A503C';
-    g.beginPath();g.ellipse(rnd()*W2,H2*0.2+rnd()*H2*0.7,60+rnd()*130,14+rnd()*26,0,0,TAU);g.fill();
-  }
-  g.globalAlpha=1;
-  // 湖泊两片（不规则蓝+高光岸线）
-  for(let i=0;i<2;i++){
-    const lx=W2*(0.22+i*0.45)+rnd()*140,ly=H2*(0.42+i*0.24),lw=150+rnd()*160,lh=26+rnd()*18;
-    g.fillStyle='#3E7EA8';
-    g.beginPath();g.ellipse(lx,ly,lw,lh,0,0,TAU);g.fill();
-    g.fillStyle='#5C9EC8';
-    g.beginPath();g.ellipse(lx-lw*0.12,ly-lh*0.18,lw*0.6,lh*0.45,0,0,TAU);g.fill();
-    g.strokeStyle='rgba(220,240,250,.35)';g.lineWidth=1.5;
-    g.beginPath();g.ellipse(lx,ly,lw,lh,0,Math.PI*1.08,Math.PI*1.92);g.stroke();
-  }
-  // 小径
-  g.strokeStyle='rgba(196,178,138,.5)';g.lineWidth=9;g.lineCap='round';
-  g.beginPath();g.moveTo(W2*0.05,H2*0.85);
-  g.bezierCurveTo(W2*0.3,H2*0.7,W2*0.5,H2*0.95,W2*0.92,H2*0.78);
-  g.stroke();g.lineCap='butt';
-  // 树 v2：树干梯形+三层圆冠+冠影
-  for(let i=0;i<40;i++){
-    const x=rnd()*W2,base=H2*0.32+rnd()*H2*0.62,h=14+rnd()*30,w=6+rnd()*7;
-    g.fillStyle='rgba(6,14,10,.5)';
-    g.beginPath();g.ellipse(x+w*0.8,base-h*0.06,w*2.6,h*0.16,0,0,TAU);g.fill();
-    g.fillStyle='#2E2018';
-    g.beginPath();g.moveTo(x-w*0.35,base);g.lineTo(x-w*0.18,base-h*0.55);g.lineTo(x+w*0.18,base-h*0.55);g.lineTo(x+w*0.35,base);g.closePath();g.fill();
-    const cw=w*2.6,cc=['#1E4430','#2E5C40','#3E704C'];
-    for(let k=0;k<3;k++){
-      g.fillStyle=cc[k];
-      g.beginPath();g.arc(x+(k-1)*cw*0.16,base-h*0.55-k*h*0.22,cw*(1-k*0.2),0,TAU);g.fill();
-    }
-    g.fillStyle='rgba(160,220,170,.25)';
-    g.beginPath();g.arc(x-cw*0.2,base-h*0.75,cw*0.42,0,TAU);g.fill();
-  }
-  // 近景草丛笔触
-  for(let i=0;i<300;i++){
-    const x=rnd()*W2,y=H2*0.6+rnd()*H2*0.4;
-    g.strokeStyle=rnd()>0.5?'rgba(90,140,96,.6)':'rgba(30,60,44,.6)';
-    g.lineWidth=1;
-    g.beginPath();g.moveTo(x,y);g.lineTo(x+(rnd()-0.5)*4,y-3-rnd()*5);g.stroke();
-  }
-  const petals=['#E8C8D8','#F0E8A0','#D8E4F0'];
-  for(let i=0;i<22;i++){                      // 小花
-    const x=rnd()*W2,y=H2*0.6+rnd()*H2*0.38;
-    g.fillStyle=petals[i%3];
-    for(let p2=0;p2<4;p2++){
-      const aa=p2/4*TAU+rnd();
-      g.beginPath();g.arc(x+Math.cos(aa)*2.2,y+Math.sin(aa)*2.2,1.7,0,TAU);g.fill();
-    }
-    g.fillStyle='#C8A030';
-    g.beginPath();g.arc(x,y,1.1,0,TAU);g.fill();
-  }
+  const GF={terraces:bakeGF_terraces,alps:bakeGF_alps,savanna:bakeGF_savanna,canyon:bakeGF_canyon,rainforest:bakeGF_rainforest,beach:bakeGF_beach,ice:bakeGF_ice};
+  if(cc&&GF[cc.feat])GF[cc.feat](g,W2,H2,rnd,pal);
   return c;
 }
 function bakeEarthHills(cc){
   const hc=cc&&cc.hill?cc.hill:'#4A6E6A';
+  const feat=cc&&cc.feat;
   const W2=1600,H2=Math.ceil(H*0.3);
   const c=document.createElement('canvas');c.width=W2;c.height=H2;
   const g=c.getContext('2d');
-  g.fillStyle=hc;                              // 远山（大气透视，周期 fbm 轮廓）
+  g.fillStyle=hc;                              // 远山（周期 fbm 轮廓，feat 决定形态）
   g.beginPath();g.moveTo(0,H2);
   for(let x=0;x<=W2;x+=28){
     const aa=x/W2*TAU;
     const v=fbm2(Math.cos(aa)*3+20,Math.sin(aa)*3+20,6250,3);
-    g.lineTo(x,H2*(0.72-v*0.5));
+    let y;
+    if(feat==='alps')y=H2*(0.42-v*0.58);
+    else if(feat==='canyon')y=H2*(0.62-Math.floor(v*5)/5*0.32);
+    else if(feat==='beach')y=H2*(0.86-v*0.1);
+    else if(feat==='ice')y=H2*(0.76-v*0.26);
+    else y=H2*(0.72-v*0.5);
+    g.lineTo(x,y);
   }
   g.lineTo(W2,H2);g.closePath();g.fill();
+  if(feat==='alps'){                           // 雪线：山形内自上而下渐白
+    g.save();g.clip();
+    const sg=g.createLinearGradient(0,0,0,H2*0.62);
+    sg.addColorStop(0,'rgba(244,248,252,.95)');
+    sg.addColorStop(0.55,'rgba(244,248,252,0)');
+    g.fillStyle=sg;g.fillRect(0,0,W2,H2*0.62);
+    g.restore();
+  }
+  if(feat==='canyon'){                         // 沉积地层条带
+    g.save();g.clip();
+    for(let y=H2*0.3,i=0;y<H2;y+=H2*0.085,i++){
+      g.fillStyle=i%2?'rgba(60,26,12,.28)':'rgba(230,150,90,.16)';
+      g.fillRect(0,y,W2,H2*0.042);
+    }
+    g.restore();
+  }
   tintGround(g,W2,H2,hc,0.06,0.02,0.06,6251,0.3);
   return c;
 }
-function bakeCityLights(){
+function bakeCityLights(feat){
   const W2=1600,H2=Math.ceil(H*0.5);
   const c=document.createElement('canvas');c.width=W2;c.height=H2;
   const g=c.getContext('2d');
   const rnd=mulberry(8150);
   window.__cityTw=[];
-  for(let i=0;i<3;i++){                       // 3 座城市：天际线剪影+窗灯+灯簇
-    const bx=W2*(0.15+i*0.3)+rnd()*120;
-    for(let b2=0;b2<9;b2++){                  // 楼宇剪影
-      const w2=13+rnd()*26,h2=16+rnd()*48,x2=bx+(b2-4)*32+(rnd()-0.5)*12,y2=H2*0.6-h2;
-      g.fillStyle='#0B111E';
-      g.fillRect(x2,y2,w2,h2);
-      for(let wy=0;wy<h2-7;wy+=8)for(let wx=0;wx<w2-6;wx+=7){
-        if(rnd()>0.6){g.fillStyle='rgba(255,226,150,.8)';g.fillRect(x2+3+wx,y2+4+wy,2.5,3.5);}
-        else{g.fillStyle='#0B111E';}
+  if(feat==='alps'||feat==='terraces'){        // 欧/亚：城市天际线
+    for(let i=0;i<3;i++){
+      const bx=W2*(0.15+i*0.3)+rnd()*120;
+      for(let b2=0;b2<9;b2++){
+        const w2=13+rnd()*26,h2=16+rnd()*48,x2=bx+(b2-4)*32+(rnd()-0.5)*12,y2=H2*0.6-h2;
+        g.fillStyle='#0B111E';
+        g.fillRect(x2,y2,w2,h2);
+        for(let wy=0;wy<h2-7;wy+=8)for(let wx=0;wx<w2-6;wx+=7){
+          if(rnd()>0.6){g.fillStyle='rgba(255,226,150,.8)';g.fillRect(x2+3+wx,y2+4+wy,2.5,3.5);}
+          else{g.fillStyle='#0B111E';}
+        }
+      }
+      const gl=g.createRadialGradient(bx,H2*0.72,0,bx,H2*0.72,190);
+      gl.addColorStop(0,'rgba(255,220,150,.22)');gl.addColorStop(1,'rgba(255,220,150,0)');
+      g.fillStyle=gl;g.fillRect(bx-190,H2*0.72-190,380,380);
+      for(let j=0;j<110;j++){
+        const x=bx+(rnd()-0.5)*260,y=H2*0.55+rnd()*H2*0.4;
+        g.globalAlpha=0.35+rnd()*0.6;
+        g.fillStyle=rnd()>0.3?'#FFE9B0':'#BFD8FF';
+        const s2=1+rnd()*1.8;
+        g.fillRect(x,y,s2,s2);
+        g.globalAlpha*=0.35;
+        g.fillRect(x,y+6,s2*1.4,s2*3);
+        g.globalAlpha=Math.min(1,g.globalAlpha/0.35);
+        if(j%9===0)window.__cityTw.push({x,y});
       }
     }
-    const gl=g.createRadialGradient(bx,H2*0.72,0,bx,H2*0.72,190);
-    gl.addColorStop(0,'rgba(255,220,150,.22)');gl.addColorStop(1,'rgba(255,220,150,0)');
-    g.fillStyle=gl;g.fillRect(bx-190,H2*0.72-190,380,380);
-    for(let j=0;j<110;j++){
-      const x=bx+(rnd()-0.5)*260,y=H2*0.55+rnd()*H2*0.4;
-      g.globalAlpha=0.35+rnd()*0.6;
+  }else{                                       // 野外观测站营地
+    for(let i=0;i<2;i++){
+      const bx=W2*(0.25+i*0.45)+rnd()*100,by=H2*0.62;
+      g.fillStyle='#1A2430';
+      g.beginPath();g.arc(bx,by,16+rnd()*6,Math.PI,0);g.closePath();g.fill();
+      g.fillStyle='#0E1620';
+      g.fillRect(bx-20,by,40,6);
+      g.fillRect(bx+26,by-9,24,15);
+      g.strokeStyle='#1A2430';g.lineWidth=2;
+      g.beginPath();g.moveTo(bx-14,by-14);g.lineTo(bx-14,by-36);g.stroke();
+      g.fillStyle='#FF5A48';g.beginPath();g.arc(bx-14,by-38,2.2,0,TAU);g.fill();
+      g.fillStyle='rgba(255,226,150,.85)';
+      g.fillRect(bx-7,by-9,4,4);g.fillRect(bx+1,by-9,4,4);
+      for(let l=0;l<8;l++){                    // 围栏灯串
+        const lx=bx-62+l*17,ly=by+10+((l%2)?3:0);
+        g.fillStyle='rgba(255,230,160,.7)';g.fillRect(lx,ly,2.5,2.5);
+        g.globalAlpha=0.22;g.fillRect(lx-2,ly+4,7,5);g.globalAlpha=1;
+        if(l%3===0)window.__cityTw.push({x:lx,y:ly});
+      }
+      const gl=g.createRadialGradient(bx,by+12,0,bx,by+12,90);
+      gl.addColorStop(0,'rgba(255,214,140,.15)');gl.addColorStop(1,'rgba(255,214,140,0)');
+      g.fillStyle=gl;g.fillRect(bx-90,by-80,180,190);
+    }
+    for(let j=0;j<36;j++){                     // 远处零星灯点
+      const x=rnd()*W2,y=H2*0.55+rnd()*H2*0.4;
+      g.globalAlpha=0.25+rnd()*0.45;
       g.fillStyle=rnd()>0.3?'#FFE9B0':'#BFD8FF';
-      const s2=1+rnd()*1.8;
-      g.fillRect(x,y,s2,s2);
-      g.globalAlpha*=0.35;                       // 灯光倒影（湿地面）
-      g.fillRect(x,y+6,s2*1.4,s2*3);
-      g.globalAlpha=Math.min(1,g.globalAlpha/0.35);
-      if(j%9===0)window.__cityTw.push({x,y});
+      g.fillRect(x,y,1.6,1.6);
+      g.globalAlpha=1;
     }
   }
-  g.globalAlpha=1;
   return c;
 }
 function bakeGalaxy(){
@@ -1326,31 +1326,31 @@ const LAND_SAMPLE_DEF={yaws:[0.6,2.1,4.1],task:'采集样本',gcol:'#E8E4D8'};
 const CONTINENTS=[
  {id:'asia',name:'亚洲 · 东亚',lat:34,lon:108,
   sky:['#E8C898','#C09058'],ground:{top:'#8CAC58',mid:'#5A8C42',low:'#2E5230'},hill:'#4A6E4A',
-  feat:'terraces',brief:'东亚观测站收到季风预警。沿梯田走向采集三份水稻土样，校准气象模型。',
+  feat:'terraces',task:'采集水稻土样',brief:'东亚观测站收到季风预警。沿梯田走向采集三份水稻土样，校准气象模型。',
   names:['AS-01 江南水稻土','AS-02 喜马拉雅冰晶','AS-03 东海盐晶'],yaws:[0.6,2.3,4.0]},
  {id:'europe',name:'欧洲 · 阿尔卑斯',lat:47,lon:8,
   sky:['#B8D0E8','#88B0D4'],ground:{top:'#5C8C64',mid:'#3E6C48',low:'#1E3E30'},hill:'#4E6A72',snow:true,
-  feat:'alps',brief:'阿尔卑斯冰川监测站报告：雪线逐年上升。采集高峰冰样与针叶林对照样本。',
+  feat:'alps',task:'采集冰川样本',brief:'阿尔卑斯冰川监测站报告：雪线逐年上升。采集高峰冰样与针叶林对照样本。',
   names:['EU-01 阿尔卑斯雪样','EU-02 黑森林针叶','EU-03 冰川融水'],yaws:[0.5,2.1,3.9]},
  {id:'africa',name:'非洲 · 萨瓦纳',lat:2,lon:22,
   sky:['#F0C878','#D89048'],ground:{top:'#C8A850',mid:'#A07830',low:'#584018'},hill:'#8A6828',
-  feat:'savanna',brief:'稀树草原的旱季结束了。象群正在迁徙——采集草原土样，别惊扰它们。',
+  feat:'savanna',task:'采集草原土样',brief:'稀树草原的旱季结束了。象群正在迁徙——采集草原土样，别惊扰它们。',
   names:['AF-01 稀树草原土','AF-02 金合欢豆荚','AF-03 干季河床沙'],yaws:[0.7,2.4,4.2]},
  {id:'namerica',name:'北美洲 · 峡谷',lat:38,lon:-110,
   sky:['#E8C098','#C08850'],ground:{top:'#C06030',mid:'#9A4824',low:'#582A14'},hill:'#8A4420',
-  feat:'canyon',brief:'红岩峡谷保存着两亿年的地层史。沿岩层采集三段不同年代的样本。',
+  feat:'canyon',task:'采集岩层样本',brief:'红岩峡谷保存着两亿年的地层史。沿岩层采集三段不同年代的样本。',
   names:['NA-01 峡谷红岩','NA-02 岩层化石段','NA-03 河床砾石'],yaws:[0.55,2.15,3.95]},
  {id:'samerica',name:'南美洲 · 亚马逊',lat:-4,lon:-60,
   sky:['#A8D0B8','#78A888'],ground:{top:'#1E5C34',mid:'#14422A',low:'#0A2818'},hill:'#2A5C3A',
-  feat:'rainforest',brief:'地球之肺的心脏地带。冠层之下藏着全球最密集的生命——轻装深入，采集三份样本。',
+  feat:'rainforest',task:'采集雨林样本',brief:'地球之肺的心脏地带。冠层之下藏着全球最密集的生命——轻装深入，采集三份样本。',
   names:['SA-01 雨林腐殖土','SA-02 安第斯矿石','SA-03 瀑布水雾凝珠'],yaws:[0.65,2.25,4.05]},
  {id:'oceania',name:'大洋洲 · 东岸',lat:-28,lon:153,
   sky:['#88C8E8','#58A0D0'],ground:{top:'#D8C890',mid:'#B8A868',low:'#786840'},hill:'#C0B080',
-  feat:'beach',brief:'大堡礁的外缘沙滩。海风很咸——采集珊瑚沙与桉树叶，潮汐表在站内。',
+  feat:'beach',task:'采集珊瑚沙样',brief:'大堡礁的外缘沙滩。海风很咸——采集珊瑚沙与桉树叶，潮汐表在站内。',
   names:['OC-01 珊瑚白沙','OC-02 桉树叶','OC-03 太平洋浪花盐'],yaws:[0.6,2.3,4.1]},
  {id:'antarctica',name:'南极洲',lat:-76,lon:40,
   sky:['#1A2238','#34406A'],ground:{top:'#E8F0F8',mid:'#C8D8E8',low:'#8FA8C4'},hill:'#D8E4F0',aurora:true,
-  feat:'ice',brief:'极夜边缘的冰盖上空有极光。冰芯封着一百万年前的空气——采集三段冰样。',
+  feat:'ice',task:'采集冰芯样本',brief:'极夜边缘的冰盖上空有极光。冰芯封着一百万年前的空气——采集三段冰样。',
   names:['AN-01 冰芯样本','AN-02 极光期大气瓶','AN-03 企鹅聚落羽毛'],yaws:[0.7,2.35,4.15]}
 ];
 const CONTINENT_BY_ID={};CONTINENTS.forEach(c=>CONTINENT_BY_ID[c.id]=c);
@@ -2991,6 +2991,400 @@ function drawLandMoon(t,drop){
     }
   }
 }
+function bakeGF_terraces(g,W2,H2,rnd,pal){
+  const cs=['#7CA84E','#63943F','#4E7E36','#8CB45E','#567E2E'];
+  for(let i=0;i<11;i++){                       // 梯田：远→近逐层覆盖
+    const y0=H2*(0.06+i*0.082);
+    g.fillStyle=cs[i%5];g.globalAlpha=0.5+i*0.035;
+    g.beginPath();g.moveTo(0,y0);
+    for(let x=0;x<=W2;x+=40)g.lineTo(x,y0+Math.sin(x*0.011+i*1.9)*H2*0.022);
+    g.lineTo(W2,H2);g.lineTo(0,H2);g.closePath();g.fill();
+    g.globalAlpha=0.45;                        // 田埂水光
+    g.strokeStyle='rgba(215,240,255,.55)';g.lineWidth=1.5;
+    g.beginPath();g.moveTo(0,y0);
+    for(let x=0;x<=W2;x+=40)g.lineTo(x,y0+Math.sin(x*0.011+i*1.9)*H2*0.022);
+    g.stroke();
+    g.strokeStyle='rgba(185,222,244,.3)';g.lineWidth=2.5;   // 水田映天光
+    g.beginPath();g.moveTo(0,y0+3);
+    for(let x=0;x<=W2;x+=40)g.lineTo(x,y0+3+Math.sin(x*0.011+i*1.9)*H2*0.022);
+    g.stroke();g.globalAlpha=1;
+  }
+  g.strokeStyle='rgba(60,80,40,.3)';g.lineWidth=1.2;
+  for(let i=0;i<14;i++){                       // 田块竖埂
+    const x=rnd()*W2,y=H2*0.12+rnd()*H2*0.55;
+    g.beginPath();g.moveTo(x,y);g.lineTo(x+(rnd()-0.5)*6,y+10+rnd()*16);g.stroke();
+  }
+  for(let i=0;i<3;i++){                        // 农舍
+    const x=W2*(0.15+i*0.3)+rnd()*60,y=H2*0.32+rnd()*H2*0.3;
+    g.fillStyle='#3A3028';g.fillRect(x-7,y-8,14,8);
+    g.fillStyle='#8A5232';
+    g.beginPath();g.moveTo(x-9,y-8);g.lineTo(x,y-14);g.lineTo(x+9,y-8);g.closePath();g.fill();
+  }
+}
+function bakeGF_alps(g,W2,H2,rnd,pal){
+  for(let i=0;i<26;i++){                       // 针叶林
+    const x=rnd()*W2,base=H2*0.34+rnd()*H2*0.6,h=18+rnd()*36,w=h*0.3;
+    g.fillStyle='rgba(10,20,16,.55)';
+    g.beginPath();g.ellipse(x+w,base,w*1.8,h*0.08,0,0,TAU);g.fill();
+    g.fillStyle='#16281E';
+    g.fillRect(x-w*0.12,base-h*0.3,w*0.24,h*0.3);
+    g.fillStyle=i%3?'#1E3E2C':'#28503A';
+    for(let k=0;k<3;k++){
+      const yy=base-h*(0.22+k*0.26),ww=w*(1-k*0.22);
+      g.beginPath();g.moveTo(x,yy-h*0.34);g.lineTo(x-ww,yy);g.lineTo(x+ww,yy);g.closePath();g.fill();
+    }
+    g.fillStyle='rgba(230,240,248,.3)';
+    g.beginPath();g.moveTo(x,base-h*0.92);g.lineTo(x-w*0.5,base-h*0.68);g.lineTo(x-w*0.08,base-h*0.62);g.closePath();g.fill();
+  }
+  for(let i=0;i<10;i++){                       // 残雪斑（小而淡）
+    g.fillStyle='rgba(240,246,252,'+(0.14+rnd()*0.18).toFixed(2)+')';
+    g.beginPath();g.ellipse(rnd()*W2,H2*0.1+rnd()*H2*0.2,10+rnd()*26,3+rnd()*7,(rnd()-0.5)*0.8,0,TAU);g.fill();
+  }
+  for(let i=0;i<2;i++){                        // 山间木屋
+    const x=W2*(0.3+i*0.4),y=H2*(0.42+i*0.14);
+    g.fillStyle='#3E2E20';g.fillRect(x-13,y-10,26,10);
+    g.fillStyle='#2A1E14';
+    g.beginPath();g.moveTo(x-15,y-10);g.lineTo(x,y-19);g.lineTo(x+15,y-10);g.closePath();g.fill();
+    g.fillStyle='rgba(255,214,140,.8)';g.fillRect(x-6,y-8,4,4);g.fillRect(x+3,y-8,4,4);
+  }
+  for(let i=0;i<10;i++){                       // 碎岩
+    const x=rnd()*W2,y=H2*0.5+rnd()*H2*0.45,r=4+rnd()*9;
+    g.fillStyle='#5A5E66';
+    g.beginPath();g.moveTo(x-r,y);g.lineTo(x-r*0.3,y-r);g.lineTo(x+r*0.6,y-r*0.7);g.lineTo(x+r,y);g.closePath();g.fill();
+  }
+}
+function bakeGF_savanna(g,W2,H2,rnd,pal){
+  g.fillStyle='rgba(150,130,90,.5)';           // 土路
+  g.strokeStyle='rgba(150,130,90,.5)';g.lineWidth=13;g.lineCap='round';
+  g.beginPath();g.moveTo(W2*0.08,H2*0.92);
+  g.bezierCurveTo(W2*0.35,H2*0.7,W2*0.55,H2*0.98,W2*0.88,H2*0.78);
+  g.stroke();g.lineCap='butt';
+  for(let i=0;i<14;i++){                       // 灌丛
+    g.fillStyle=rnd()>0.5?'rgba(70,80,30,.8)':'rgba(90,90,40,.8)';
+    g.beginPath();g.ellipse(rnd()*W2,H2*0.45+rnd()*H2*0.5,10+rnd()*22,5+rnd()*8,0,0,TAU);g.fill();
+  }
+  g.strokeStyle='rgba(196,170,90,.55)';g.lineWidth=1.2;
+  for(let i=0;i<260;i++){                      // 干草
+    const x=rnd()*W2,y=H2*0.42+rnd()*H2*0.55,ln=4+rnd()*8,ang=(rnd()-0.5)*1.6;
+    g.beginPath();g.moveTo(x,y);g.lineTo(x+Math.cos(ang)*ln,y-Math.abs(Math.sin(ang))*ln*0.6-2);g.stroke();
+  }
+  for(let i=0;i<9;i++){                        // 金合欢伞树
+    const x=rnd()*W2,base=H2*0.4+rnd()*H2*0.5,h=22+rnd()*30;
+    g.strokeStyle='#3A2818';g.lineWidth=2.2+rnd()*1.6;
+    g.beginPath();g.moveTo(x,base);
+    g.quadraticCurveTo(x+(rnd()-0.5)*8,base-h*0.6,x+(rnd()-0.5)*14,base-h);g.stroke();
+    g.strokeStyle='#2E2012';g.lineWidth=1.4;
+    for(let b=0;b<3;b++){
+      const bx=x+(rnd()-0.5)*10;
+      g.beginPath();g.moveTo(x+(bx-x)*0.35,base-h*0.55);g.lineTo(bx+(rnd()-0.5)*6,base-h*(0.9+rnd()*0.12));g.stroke();
+    }
+    g.fillStyle='#4A5C22';
+    g.beginPath();g.ellipse(x+(rnd()-0.5)*6,base-h*1.04,h*(0.85+rnd()*0.35),h*0.16,0,0,TAU);g.fill();
+    g.fillStyle='#5C702E';
+    g.beginPath();g.ellipse(x+(rnd()-0.5)*4,base-h*1.0,h*0.55,h*0.1,0,0,TAU);g.fill();
+  }
+}
+function bakeGF_canyon(g,W2,H2,rnd,pal){
+  const bands=['#C06838','#A85028','#8A4020','#B86030','#783818'];
+  for(let y=H2*0.05,i=0;y<H2;y+=H2*(0.07+rnd()*0.05),i++){   // 沉积层
+    g.fillStyle=bands[i%5];g.globalAlpha=0.35;
+    g.beginPath();g.moveTo(0,y);
+    for(let x=0;x<=W2;x+=60)g.lineTo(x,y+Math.sin(x*0.008+i)*H2*0.015);
+    g.lineTo(W2,H2);g.lineTo(0,H2);g.closePath();g.fill();
+  }
+  g.globalAlpha=1;
+  for(let i=0;i<5;i++){                        // 岩柱台地
+    const x=rnd()*W2,w=24+rnd()*50,h=H2*(0.2+rnd()*0.3),y=H2*0.55+rnd()*H2*0.3;
+    g.fillStyle='#8A4020';g.fillRect(x,y-h,w,h);
+    g.fillStyle='rgba(40,18,8,.4)';g.fillRect(x+w*0.6,y-h,w*0.4,h);
+    g.fillStyle='rgba(230,160,100,.25)';g.fillRect(x,y-h,w,h*0.08);
+  }
+  for(let i=0;i<12;i++){                       // 碎石
+    const x=rnd()*W2,y=H2*0.55+rnd()*H2*0.4,r=3+rnd()*8;
+    g.fillStyle='#6E3418';
+    g.beginPath();g.moveTo(x-r,y);g.lineTo(x-r*0.4,y-r*0.8);g.lineTo(x+r*0.7,y-r*0.5);g.lineTo(x+r,y);g.closePath();g.fill();
+  }
+  for(let i=0;i<6;i++){                        // 仙人掌
+    const x=rnd()*W2,y=H2*0.5+rnd()*H2*0.45,h=14+rnd()*22;
+    g.strokeStyle='#2E5426';g.lineWidth=4+rnd()*3;g.lineCap='round';
+    g.beginPath();g.moveTo(x,y);g.lineTo(x,y-h);g.stroke();
+    g.beginPath();g.moveTo(x,y-h*0.55);g.quadraticCurveTo(x+h*0.4,y-h*0.6,x+h*0.4,y-h*0.85);g.stroke();
+    g.beginPath();g.moveTo(x,y-h*0.35);g.quadraticCurveTo(x-h*0.35,y-h*0.4,x-h*0.35,y-h*0.6);g.stroke();
+    g.lineCap='butt';
+  }
+  g.strokeStyle='rgba(50,22,10,.22)';g.lineWidth=1;
+  for(let i=0;i<14;i++){                       // 侵蚀细纹
+    const y=H2*(0.15+i*0.06);
+    g.beginPath();g.moveTo(0,y);
+    for(let x=0;x<=W2;x+=80)g.lineTo(x,y+Math.sin(x*0.006+i*1.3)*3);
+    g.stroke();
+  }
+}
+function bakeGF_rainforest(g,W2,H2,rnd,pal){
+  g.fillStyle='#0A2818';g.globalAlpha=1;
+  for(let i=0;i<44;i++){                       // 密冠层
+    g.fillStyle=['#0E3822','#144428','#0A2E1C','#1A5030'][i%4];
+    g.beginPath();g.ellipse(rnd()*W2,H2*(0.1+rnd()*0.5),40+rnd()*90,18+rnd()*30,0,0,TAU);g.fill();
+  }
+  for(let i=0;i<2;i++){                        // 巨树+板根
+    const x=W2*(0.2+i*0.55)+rnd()*80;
+    g.fillStyle='#241A10';
+    g.fillRect(x-9,H2*0.2,18,H2*0.78);
+    g.beginPath();g.moveTo(x-9,H2*0.96);g.lineTo(x-26,H2*0.99);g.lineTo(x-9,H2*0.72);g.closePath();g.fill();
+    g.beginPath();g.moveTo(x+9,H2*0.96);g.lineTo(x+26,H2*0.99);g.lineTo(x+9,H2*0.72);g.closePath();g.fill();
+    g.fillStyle='#0E3822';
+    g.beginPath();g.ellipse(x,H2*0.16,90,34,0,0,TAU);g.fill();
+  }
+  g.strokeStyle='#1A3A26';g.lineWidth=1.6;
+  for(let i=0;i<10;i++){                       // 藤蔓
+    const x=rnd()*W2,y0=H2*0.05+rnd()*H2*0.2,len=H2*(0.2+rnd()*0.5);
+    g.beginPath();g.moveTo(x,y0);
+    g.bezierCurveTo(x+14,y0+len*0.3,x-14,y0+len*0.6,x+6,y0+len);g.stroke();
+    g.fillStyle='#1E5030';
+    for(let k=1;k<=4;k++){g.beginPath();g.ellipse(x+6*(k%2?1:-1),y0+len*k/5,3,1.6,0.5,0,TAU);g.fill();}
+  }
+  const wx=W2*0.62;                            // 瀑布+水雾
+  const wg=g.createLinearGradient(0,H2*0.16,0,H2*0.5);
+  wg.addColorStop(0,'rgba(210,235,245,.9)');wg.addColorStop(1,'rgba(210,235,245,.25)');
+  g.fillStyle=wg;
+  g.beginPath();g.moveTo(wx-8,H2*0.16);g.lineTo(wx+8,H2*0.16);g.lineTo(wx+14,H2*0.5);g.lineTo(wx-14,H2*0.5);g.closePath();g.fill();
+  g.fillStyle='rgba(200,225,240,.35)';
+  g.beginPath();g.ellipse(wx,H2*0.52,30,9,0,0,TAU);g.fill();
+  g.lineWidth=1.2;
+  for(let i=0;i<160;i++){                      // 蕨类
+    const x=rnd()*W2,y=H2*0.6+rnd()*H2*0.35;
+    g.strokeStyle=rnd()>0.5?'rgba(40,110,60,.7)':'rgba(16,56,34,.8)';
+    g.beginPath();g.moveTo(x,y);g.quadraticCurveTo(x+3,y-5,x+7,y-8);g.stroke();
+  }
+  g.strokeStyle='rgba(20,60,80,.55)';g.lineWidth=14;g.lineCap='round';
+  g.beginPath();g.moveTo(W2*0.05,H2*0.88);
+  g.bezierCurveTo(W2*0.3,H2*0.66,W2*0.6,H2*0.9,W2*0.95,H2*0.66);
+  g.stroke();
+  g.strokeStyle='rgba(120,180,200,.25)';g.lineWidth=3;
+  g.beginPath();g.moveTo(W2*0.05,H2*0.87);
+  g.bezierCurveTo(W2*0.3,H2*0.65,W2*0.6,H2*0.89,W2*0.95,H2*0.65);
+  g.stroke();g.lineCap='butt';
+}
+function bakeGF_beach(g,W2,H2,rnd,pal){
+  const og=g.createLinearGradient(0,0,0,H2*0.3);   // 远处海面
+  og.addColorStop(0,'#3E88B8');og.addColorStop(1,'#66AACC');
+  g.fillStyle=og;g.fillRect(0,0,W2,H2*0.3);
+  g.strokeStyle='rgba(240,250,255,.5)';g.lineWidth=1.4;
+  for(let i=0;i<6;i++){                        // 海面浪线
+    const y=H2*(0.04+i*0.045);
+    g.beginPath();g.moveTo(0,y);
+    for(let x=0;x<=W2;x+=50)g.lineTo(x,y+Math.sin(x*0.02+i*2)*2.5);
+    g.stroke();
+  }
+  const sg2=g.createLinearGradient(0,H2*0.3,0,H2*0.62);  // 沙滩（湿→干）
+  sg2.addColorStop(0,'#C8B880');sg2.addColorStop(1,'#E8DCB0');
+  g.fillStyle=sg2;
+  g.beginPath();g.moveTo(0,H2*0.3);
+  for(let x=0;x<=W2;x+=50)g.lineTo(x,H2*0.3+Math.sin(x*0.01)*H2*0.02);
+  g.lineTo(W2,H2);g.lineTo(0,H2);g.closePath();g.fill();
+  g.strokeStyle='rgba(180,160,110,.4)';g.lineWidth=1;
+  for(let i=0;i<40;i++){                       // 沙纹
+    const x=rnd()*W2,y=H2*0.42+rnd()*H2*0.5;
+    g.beginPath();g.moveTo(x,y);g.quadraticCurveTo(x+14,y+3,x+28,y);g.stroke();
+  }
+  for(let i=0;i<6;i++){                        // 棕榈
+    const x=rnd()*W2,base=H2*0.5+rnd()*H2*0.42,h=40+rnd()*36,bend=(rnd()-0.5)*30;
+    g.strokeStyle='#6A4E2C';g.lineWidth=4+rnd()*2;
+    g.beginPath();g.moveTo(x,base);g.quadraticCurveTo(x+bend*0.4,base-h*0.6,x+bend,base-h);g.stroke();
+    const tx=x+bend,ty=base-h;
+    g.strokeStyle='#2E6E3C';g.lineWidth=2.4;g.lineCap='round';
+    for(let f=0;f<8;f++){
+      const a2=Math.PI*(0.08+f/7*0.84);
+      g.beginPath();g.moveTo(tx,ty);
+      g.quadraticCurveTo(tx+Math.cos(a2)*h*0.42,ty-Math.sin(a2)*h*0.38,tx+Math.cos(a2)*h*0.6,ty-Math.sin(a2)*h*0.3+h*0.14);
+      g.stroke();
+    }
+    g.lineCap='butt';
+    g.fillStyle='#5C4426';
+    g.beginPath();g.arc(tx-3,ty+3,3,0,TAU);g.fill();
+    g.beginPath();g.arc(tx+3,ty+4,3,0,TAU);g.fill();
+  }
+  g.fillStyle='rgba(250,245,235,.8)';
+  for(let i=0;i<10;i++){                       // 贝壳
+    g.beginPath();g.ellipse(rnd()*W2,H2*0.55+rnd()*H2*0.4,3+rnd()*2.5,2+rnd()*1.6,rnd(),0,TAU);g.fill();
+  }
+  g.strokeStyle='rgba(250,252,255,.75)';g.lineWidth=3;
+  g.beginPath();g.moveTo(0,H2*0.31);
+  for(let x=0;x<=W2;x+=40)g.lineTo(x,H2*0.31+Math.sin(x*0.02)*3);
+  g.stroke();
+  g.globalAlpha=0.4;g.lineWidth=6;
+  g.beginPath();g.moveTo(0,H2*0.335);
+  for(let x=0;x<=W2;x+=40)g.lineTo(x,H2*0.335+Math.sin(x*0.02+0.7)*4);
+  g.stroke();g.globalAlpha=1;
+}
+function bakeGF_ice(g,W2,H2,rnd,pal){
+  for(let i=0;i<7;i++){                        // 远处冰山
+    const x=rnd()*W2,y=H2*0.12+rnd()*H2*0.2,w=60+rnd()*130,h=20+rnd()*40;
+    g.fillStyle='rgba(220,235,250,.9)';
+    g.beginPath();g.moveTo(x-w,y);g.lineTo(x-w*0.4,y-h);g.lineTo(x+w*0.2,y-h*0.6);g.lineTo(x+w,y);g.closePath();g.fill();
+    g.fillStyle='rgba(140,170,205,.5)';
+    g.beginPath();g.moveTo(x+w*0.2,y-h*0.6);g.lineTo(x+w,y);g.lineTo(x+w*0.3,y);g.closePath();g.fill();
+  }
+  g.strokeStyle='rgba(120,155,195,.55)';g.lineWidth=1.3;
+  for(let i=0;i<22;i++){                       // 冰裂纹
+    const x=rnd()*W2,y=H2*0.35+rnd()*H2*0.6;
+    g.beginPath();g.moveTo(x,y);
+    let cx2=x,cy2=y;
+    for(let k=0;k<4;k++){cx2+=(rnd()-0.3)*46;cy2+=(rnd()-0.5)*14;g.lineTo(cx2,cy2);}
+    g.stroke();
+  }
+  g.strokeStyle='rgba(160,190,225,.4)';g.lineWidth=2.5;
+  for(let i=0;i<5;i++){                        // 风蚀雪脊
+    const y=H2*0.45+rnd()*H2*0.45;
+    g.beginPath();g.moveTo(rnd()*W2*0.3,y);
+    g.bezierCurveTo(W2*0.4,y-8,W2*0.6,y+10,W2*(0.7+rnd()*0.25),y);
+    g.stroke();
+  }
+  for(let i=0;i<8;i++){                        // 企鹅聚落
+    const px=rnd()*W2,py=H2*0.55+rnd()*H2*0.35,ps=3+rnd()*4;
+    g.fillStyle='#1A2028';
+    g.beginPath();g.ellipse(px,py,ps*0.6,ps,0,0,TAU);g.fill();
+    g.fillStyle='#F4F6F8';
+    g.beginPath();g.ellipse(px,py+ps*0.15,ps*0.36,ps*0.62,0,0,TAU);g.fill();
+    g.fillStyle='#E8912C';g.fillRect(px-1,py-ps-2,2,2);
+  }
+  g.strokeStyle='rgba(70,105,150,.26)';g.lineWidth=3.5;
+  for(let i=0;i<3;i++){                        // 冰隙
+    const y=H2*(0.4+i*0.16);
+    g.beginPath();g.moveTo(0,y);
+    for(let x=0;x<=W2;x+=70)g.lineTo(x,y+Math.sin(x*0.01+i*2.2)*5);
+    g.stroke();
+  }
+}
+function drawContinentSky(t,mix){
+  const cc=CONTINENT_BY_ID[land.continent];
+  if(!cc||!cc.aurora||mix>=0.6)return;         // 极光帘幕（夜面）
+  const au=clamp((0.6-mix)/0.6,0,1);
+  for(let b=0;b<3;b++){
+    const bx=W*(0.22+b*0.28)+Math.sin(t*0.00035+b*2.1)*W*0.08;
+    const bw=W*(0.09+0.04*Math.sin(t*0.0005+b*1.3));
+    const ag=ctx.createLinearGradient(0,H*0.08,0,H*0.44);
+    ag.addColorStop(0,'rgba(150,90,200,0)');
+    ag.addColorStop(0.55,'rgba(120,230,160,'+(0.3*au).toFixed(2)+')');
+    ag.addColorStop(0.85,'rgba(90,255,170,'+(0.42*au).toFixed(2)+')');
+    ag.addColorStop(1,'rgba(90,255,170,0)');
+    ctx.fillStyle=ag;
+    ctx.beginPath();ctx.moveTo(bx-bw,H*0.44);
+    for(let x=-bw;x<=bw;x+=bw*0.2)ctx.lineTo(bx+x,H*(0.1+0.05*Math.sin(x*0.02+t*0.001+b*3)));
+    ctx.lineTo(bx+bw,H*0.44);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(140,255,190,'+(0.16*au).toFixed(2)+')';ctx.lineWidth=2;
+    for(let v=0;v<6;v++){                      // 帘幕竖纹
+      const vx=bx-bw+bw*2*(v+0.5)/6+Math.sin(t*0.0007+v+b)*8;
+      ctx.beginPath();ctx.moveTo(vx,H*0.4);ctx.lineTo(vx,H*(0.14+0.04*Math.sin(t*0.001+v*2.4+b)));
+      ctx.stroke();
+    }
+  }
+}
+function drawSoarBird(t,cx,cy,r,ang,col){
+  ctx.save();ctx.translate(cx,cy);
+  ctx.rotate(ang+Math.sin(t*0.004)*0.22);
+  ctx.strokeStyle=col;ctx.lineWidth=Math.max(1.2,r*0.18);ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(-r,0);ctx.quadraticCurveTo(0,-r*0.55,r*0.18,0);
+  ctx.quadraticCurveTo(0,r*0.18,-r,0);ctx.stroke();
+  ctx.restore();ctx.lineCap='butt';
+}
+function drawContinentGroundFx(t,drop,cc){
+  if(!cc)return;
+  {                                            // 远端地平雾（昼强夜弱）
+    const mix0=clamp(Math.cos(land.yaw-1.2)*0.5+0.5,0,1);
+    const fga=0.18+0.2*mix0;
+    const fg2=ctx.createLinearGradient(0,H*0.46+drop,0,H*0.57+drop);
+    fg2.addColorStop(0,'rgba(198,208,220,'+fga.toFixed(2)+')');
+    fg2.addColorStop(1,'rgba(198,208,220,0)');
+    ctx.fillStyle=fg2;ctx.fillRect(0,H*0.46+drop,W,H*0.11);
+  }
+  if(cc.feat==='savanna'){                     // 象群迁徙（剪影+腿摆动）
+    for(let i=0;i<3;i++){
+      const ex=((t*0.00002+i*0.42)%1.35-0.18)*W;
+      if(ex<-80||ex>W+80)continue;
+      const ey=H*0.585+drop+i*7,es=0.8+i*0.16;
+      ctx.fillStyle='rgba(38,34,30,.9)';
+      ctx.beginPath();ctx.ellipse(ex,ey-14*es,17*es,11*es,0,0,TAU);ctx.fill();
+      ctx.beginPath();ctx.ellipse(ex+15*es,ey-19*es,7*es,6.5*es,0,0,TAU);ctx.fill();
+      ctx.strokeStyle='rgba(38,34,30,.9)';ctx.lineWidth=2.6*es;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(ex+19*es,ey-16*es);
+      ctx.quadraticCurveTo(ex+24*es,ey-10*es,ex+22*es+Math.sin(t*0.004+i)*2,ey-3*es);
+      ctx.stroke();
+      for(let l=0;l<4;l++){
+        const lx=ex-11*es+l*7.4*es,sw=Math.sin(t*0.005+l*1.9+i)*2.4;
+        ctx.beginPath();ctx.moveTo(lx,ey-8*es);ctx.lineTo(lx+sw,ey-1);ctx.stroke();
+      }
+      ctx.lineCap='butt';
+    }
+  }
+  if(cc.feat==='beach'){                       // 浪花拍岸
+    for(let i=0;i<2;i++){
+      const wy=H*(0.5+i*0.035)+drop+Math.sin(t*0.0011+i*2.6)*4;
+      const wa=0.4+0.25*Math.sin(t*0.0016+i*1.9);
+      ctx.strokeStyle='rgba(235,250,255,'+wa.toFixed(2)+')';
+      ctx.lineWidth=3-i*0.7;
+      ctx.beginPath();
+      for(let x=0;x<=W;x+=34)ctx.lineTo(x,wy+Math.sin(x*0.014+t*0.00012*TAU+i)*3);
+      ctx.stroke();
+    }
+  }
+  if(cc.feat==='terraces'){                    // 白鹭掠过水田
+    const bx2=W*0.2+((t*0.018)%W)*0.55,by2=H*0.36+Math.sin(t*0.0011)*8;
+    drawSoarBird(t,bx2,by2,7,0.1,'rgba(250,250,248,.92)');
+    drawSoarBird(t,bx2-42,by2+15,5.5,0.12,'rgba(248,248,246,.8)');
+  }
+  if(cc.feat==='savanna'){                     // 远处尘烟+秃鹫盘旋
+    for(let i=0;i<2;i++){
+      const px=W*(0.3+i*0.35),py=H*0.45;
+      const sway=Math.sin(t*0.0004+i*2)*6;
+      ctx.fillStyle='rgba(185,155,115,.11)';
+      ctx.beginPath();
+      ctx.moveTo(px-9+sway,py);
+      ctx.quadraticCurveTo(px-20+sway,py-28,px-13+sway*1.5,py-52);
+      ctx.lineTo(px+11+sway*1.5,py-52);
+      ctx.quadraticCurveTo(px+18+sway,py-28,px+9+sway,py);
+      ctx.closePath();ctx.fill();
+    }
+    const scx=W*0.5+Math.cos(t*0.00018)*70,scy=H*0.24+Math.sin(t*0.00018)*16;
+    drawSoarBird(t,scx,scy,9,Math.cos(t*0.00018+1.57)*0.3,'rgba(30,26,22,.8)');
+  }
+  if(cc.feat==='canyon'){                      // 盘旋鹰
+    const cx2=W*0.35+Math.cos(t*0.00022)*60,cy2=H*0.26+Math.sin(t*0.00022)*12;
+    drawSoarBird(t,cx2,cy2,8,Math.cos(t*0.00022+1.57)*0.3,'rgba(28,24,20,.85)');
+  }
+  if(cc.feat==='rainforest'){                  // 林间薄雾层
+    for(let i=0;i<2;i++){
+      const my=H*(0.52+i*0.06);
+      const mx=W*0.5+Math.sin(t*0.0002+i*2.4)*W*0.18;
+      const mg2=ctx.createRadialGradient(mx,my,0,mx,my,200);
+      mg2.addColorStop(0,'rgba(210,228,222,'+(0.1-i*0.03).toFixed(2)+')');
+      mg2.addColorStop(1,'rgba(210,228,222,0)');
+      ctx.fillStyle=mg2;
+      ctx.save();ctx.translate(mx,my);ctx.scale(2.2,0.5);ctx.beginPath();ctx.arc(0,0,100,0,TAU);ctx.fill();ctx.restore();
+    }
+  }
+  if(cc.feat==='beach'){                       // 帆船缓移+海鸥
+    const sx=((t*0.02)%(W*1.25))-W*0.12;
+    const sy=H*0.475+Math.sin(t*0.0005)*3;
+    ctx.fillStyle='rgba(245,248,250,.92)';
+    ctx.beginPath();ctx.moveTo(sx,sy-14);ctx.quadraticCurveTo(sx+9,sy-6,sx,sy-2);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(90,80,70,.8)';ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.moveTo(sx,sy-15);ctx.lineTo(sx,sy);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(sx-7,sy);ctx.quadraticCurveTo(sx,sy+3,sx+7,sy);ctx.stroke();
+    drawSoarBird(t,W*(0.25+((t*0.02)%1)*0.3),H*0.42+Math.sin(t*0.001)*5,6,0,'rgba(40,46,54,.7)');
+    drawSoarBird(t,W*(0.8-((t*0.016)%1)*0.3),H*0.39+Math.sin(t*0.0013+2)*4,5,0,'rgba(40,46,54,.6)');
+  }
+  if(cc.feat==='ice'){                         // 极地风雪（斜向横扫）
+    ctx.lineWidth=1;
+    for(let i=0;i<26;i++){
+      const sx=((i*173.3+t*0.42)%(W+80))-40;
+      const sy=(i*97.7+t*0.12)%H;
+      const ln=6+(i%5)*3;
+      ctx.strokeStyle='rgba(235,242,250,'+(0.2+0.28*((i%7)/7)).toFixed(2)+')';
+      ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+ln,sy+ln*0.32);ctx.stroke();
+    }
+  }
+}
 function drawLandEarth(t,drop){
   const cc=CONTINENT_BY_ID[land.continent]||CONTINENTS[0];
   const yaw=land.yaw,sunYaw=1.2;
@@ -3011,7 +3405,9 @@ function drawLandEarth(t,drop){
   if(mix<0.55&&fgSpr){
     const ox=Math.round((((yaw*W*0.3)%W)+W)%W);
     ctx.globalAlpha=clamp(1-mix*1.6,0,0.9);
+    ctx.save();ctx.beginPath();ctx.rect(0,0,W,H*0.3);ctx.clip();
     for(let k=0;k<4;k++){ctx.drawImage(fgSpr[k],ox-W,-H*0.05);ctx.drawImage(fgSpr[k],ox,-H*0.05);}
+    ctx.restore();
     ctx.globalAlpha=1;
   }
   // 飞鸟（昼面，三只 V 翅）
@@ -3042,8 +3438,9 @@ function drawLandEarth(t,drop){
     ctx.drawImage(land.clouds,2400-coff,-H*0.02);
     ctx.globalAlpha=1;
   }else land.clouds=bakeCloudBand();
+  drawContinentSky(t,mix);
   // 地表
-  if(!land.g1){land.g1=bakeEarthGround(cc);land.city=bakeCityLights();land.hills=bakeEarthHills(cc);}
+  if(!land.g1){land.g1=bakeEarthGround(cc);land.city=bakeCityLights(cc.feat);land.hills=bakeEarthHills(cc);}
   const off=Math.round((((yaw*W*0.9)%1600)+1600)%1600);
   const hoff=Math.round((((yaw*W*0.34)%1600)+1600)%1600);
   ctx.drawImage(land.hills,-hoff,H*0.3+drop);
@@ -3057,8 +3454,9 @@ function drawLandEarth(t,drop){
   ctx.globalAlpha=1;
   ctx.drawImage(land.g1,-off,H*0.46+drop);
   ctx.drawImage(land.g1,1600-off,H*0.46+drop);
-  // 城市灯火（夜面）
-  if(dayness<-0.05){
+  drawContinentGroundFx(t,drop,cc);
+  // 城市灯火（夜面；南极冰原无城市天际线）
+  if(dayness<-0.05&&cc.feat!=='ice'){
     ctx.globalAlpha=clamp(-dayness*1.6,0,1);
     ctx.drawImage(land.city,-off,H*0.52+drop);
     ctx.drawImage(land.city,1600-off,H*0.52+drop);
@@ -3078,7 +3476,7 @@ function drawLandEarth(t,drop){
     if(!land.ff){land.ff=[];for(let i=0;i<7;i++)land.ff.push({x:Math.random(),y:0.6+Math.random()*0.25,p:Math.random()*TAU,s:0.5+Math.random()});}
     for(const f of land.ff){
       const fx2=((f.x+t*0.00003)%1)*W, fy2=f.y*H+Math.sin(t*0.002*f.s+f.p)*9;
-      const fa=0.25+0.55*(0.5+0.5*Math.sin(t*0.004*f.s+f.p));
+      const fa=0.22+0.5*(0.5+0.5*Math.sin(t*0.0022*f.s+f.p));
       const fg2=ctx.createRadialGradient(fx2,fy2,0,fx2,fy2,4.5);
       fg2.addColorStop(0,'rgba(212,255,140,'+fa.toFixed(2)+')');fg2.addColorStop(1,'rgba(212,255,140,0)');
       ctx.fillStyle=fg2;ctx.beginPath();ctx.arc(fx2,fy2,4.5,0,TAU);ctx.fill();
