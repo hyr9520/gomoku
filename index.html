@@ -562,9 +562,33 @@
     *{transition-duration:.01ms!important;animation-duration:.01ms!important}
   }
 
+  #boot-loading{position:fixed;inset:0;z-index:999;background:#04060E;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .6s}
+  #boot-loading .bl-t{font-size:20px;letter-spacing:6px;color:#F1DFAE;font-weight:600}
+  #boot-loading .bl-s{font-size:12px;letter-spacing:2px;color:rgba(200,212,235,.55)}
+  #boot-loading .bl-bar{width:180px;height:2px;background:rgba(241,223,174,.15);border-radius:2px;overflow:hidden}
+  #boot-loading .bl-bar i{display:block;height:100%;width:36%;background:#F1DFAE;border-radius:2px;animation:blslide 1.2s ease-in-out infinite}
+  @keyframes blslide{0%{transform:translateX(-110%)}100%{transform:translateX(290%)}}
+  #land-guide{
+    position:fixed;bottom:110px;left:50%;transform:translateX(-50%);
+    z-index:35;font-size:12.5px;color:var(--ink);letter-spacing:1px;
+    padding:9px 20px;border-radius:999px;white-space:nowrap;
+    background:rgba(9,20,16,.88);border:1px solid rgba(120,235,190,.5);
+    opacity:0;pointer-events:none;transition:opacity .5s;
+  }
+  #land-guide.show{opacity:1}
+  @media (max-width:760px){
+    #land-card{max-width:196px;font-size:10.5px;padding:8px 10px;line-height:1.5}
+    #land-scan,#land-cam,#land-exit{font-size:10px;padding:7px 9px;letter-spacing:1px}
+    #land-exit{right:10px}
+    #land-cam{right:78px}
+    #land-scan{right:180px}
+    #toast{max-width:86vw}
+    #land-guide{font-size:11.5px;bottom:112px;max-width:88vw;white-space:normal;text-align:center}
+  }
 </style>
 </head>
 <body>
+<div id="boot-loading"><div class="bl-t">巡天 · SOLAR ATLAS</div><div class="bl-s">正在加载星图与影像数据…</div><div class="bl-bar"><i></i></div></div>
 <script>window.__bootErrs=[];window.addEventListener("error",function(e){window.__bootErrs.push(String(e.message)+" @line "+e.lineno)});</script>
 
 <canvas id="space"></canvas>
@@ -592,6 +616,7 @@
   <div id="land-tasks"></div>
 </div>
 <div id="land-compass"><div id="land-compass-inner"></div></div>
+<div id="land-guide"></div>
 <button id="land-scan">扫描 · 空格</button>
 <button id="land-cam">机位 · 观察位</button>
 <button id="land-exit">返回轨道</button>
@@ -2921,6 +2946,42 @@ function cycleScan(){
   try{tone(1180,0.09,'sine',0.04);tone(880,0.14,'sine',0.04,0.09);}catch(e){}
   if(hits===0&&!land.rvR)toast('扫描完成：附近没有新信号');
 }
+const LG_STEPS=()=>COARSE?['拖动画面环视星球','点【扫描】发现信号','点击菱形标记采集样本','点【机位】切换视角']:['拖动画面环视星球','按空格扫描发现信号','点击菱形标记采集样本','按 E 切换机位观察'];
+function showGuideStep(i){
+  const el=document.getElementById('land-guide');if(!el)return;
+  el.textContent=LG_STEPS()[i];
+  el.classList.add('show');
+}
+function hideGuide(){
+  const el=document.getElementById('land-guide');if(el)el.classList.remove('show');
+}
+function landGuideStep(){                      // 首次着陆四步引导
+  if(!land||land.mode!=='surface')return;
+  if(land.guide===undefined){
+    let done=false;try{done=!!localStorage.getItem('atlas-landguide-v1')}catch(e){}
+    land.guide=done?99:0;land.gT0=performance.now();land.gYaw0=land.yaw;
+    if(!done)showGuideStep(0);
+    return;
+  }
+  if(land.guide>3)return;
+  const now=performance.now();
+  let done=now-land.gT0>20000;
+  if(!done){
+    if(land.guide===0&&Math.abs(land.yaw-land.gYaw0)>0.4)done=true;
+    else if(land.guide===1&&land.scanAt)done=true;
+    else if(land.guide===2&&land.samples.some(Boolean))done=true;
+    else if(land.guide===3&&land.cam)done=true;
+  }
+  if(done){
+    land.guide++;land.gT0=now;
+    if(land.guide>3){
+      hideGuide();
+      try{localStorage.setItem('atlas-landguide-v1','1')}catch(e){}
+      return;
+    }
+    showGuideStep(land.guide);
+  }
+}
 function drawScanPulse(t){                     // 扫描扩散环
   if(!land.scanAt)return;
   const k=(t-land.scanAt)/1300;
@@ -3109,7 +3170,8 @@ function drawLand(t,dt){
       ctx.fillText(fx.txt,fx.x,fx.y-14-k*22);
     }
   }
-  if(land.mode==='surface'&&!land.scanTip){land.scanTip=1;setTimeout(()=>toast('按 空格 扫描地表信号，定位采样点'),2000);}
+  if(land.mode==='surface'&&!land.scanTip){land.scanTip=1;setTimeout(()=>toast(COARSE?'点【扫描】定位地表信号':'按 空格 扫描地表信号，定位采样点'),COARSE?2600:2000);}
+  landGuideStep();
   if(land.scanAt)drawScanPulse(t);
   if(land.id==='earth')drawLandEvent(t);
   const vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.36,W/2,H/2,Math.max(W,H)*0.82);
@@ -5609,6 +5671,7 @@ function toast(msg){
 }
 
 const COARSE=matchMedia("(pointer:coarse)").matches||("ontouchstart" in window&&Math.min(screen.width,screen.height)<900);
+  if(COARSE){const _sb=document.getElementById('land-scan');if(_sb)_sb.textContent='扫描';}
 
 /* ── 启动 ── */
 function resize(){
@@ -5620,6 +5683,8 @@ function resize(){
   galaxy=makeGalaxy();fgStars=makeFgStars();belt=makeBelt();kuiper=makeKuiper();galaxies=makeGalaxies();bakeStatics();
 }
 window.addEventListener('resize',resize);
+window.addEventListener('resize',()=>{clearTimeout(window.__rzT);window.__rzT=setTimeout(()=>{if(land&&land.mode==='surface'){land.g1=land.g2=land.g4=land.hills=land.hills2=land.near=land.city=land.clouds=null;scaleFlash=Math.max(scaleFlash,0.5);}},280);});
+window.addEventListener('orientationchange',()=>{setTimeout(()=>{if(land&&land.mode==='surface'){land.g1=land.g2=land.g4=land.hills=land.hills2=land.near=land.city=land.clouds=null;scaleFlash=Math.max(scaleFlash,0.6);}},380);});
 
 function loadTextures(){
   try{
@@ -5672,6 +5737,7 @@ if(COARSE){const h=$('hint');if(h)h.textContent='单指拖动平移 / 双指捏�
 setTimeout(()=>$('hint').classList.add('gone'),8000);
 window.__dbg={getCam:()=>({x:cam.x,y:cam.y,z:cam.zoom}),getDossier:()=>document.getElementById("dossier").classList.contains("open")};
 requestAnimationFrame(frame);
+(function(){const _bl=document.getElementById('boot-loading');if(_bl){_bl.style.opacity='0';setTimeout(()=>_bl.remove(),700);}})();
 </script>
 </body>
 </html>
