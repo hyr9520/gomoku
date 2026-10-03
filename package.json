@@ -9,5 +9,9 @@
   "engines": {
     "node": ">=14"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "esprima": "^4.0.1",
+    "jimp": "^0.22.12"
+  }
 }
