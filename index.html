@@ -212,7 +212,14 @@
   #land-hint b{color:var(--gold)}
   .lt{cursor:pointer}
   body.land-mode nav#planet-nav,body.land-mode .time-dock,body.land-mode header,body.land-mode #hint{display:none}
-  body.land-mode #land-exit,body.land-mode #land-cam{display:block}
+  body.land-mode #land-exit,body.land-mode #land-cam,body.land-mode #land-scan{display:block}
+  #land-scan{
+    display:none;position:fixed;top:14px;right:216px;z-index:36;
+    padding:8px 16px;border:1px solid rgba(120,235,190,.5);border-radius:9px;
+    color:#8CEBBE;font-size:12px;letter-spacing:2px;background:rgba(9,13,26,.85);
+    cursor:pointer;transition:background .2s;
+  }
+  #land-scan:hover{background:rgba(24,48,40,.9)}
   #land-cam{
     display:none;position:fixed;top:14px;right:110px;z-index:36;
     padding:8px 16px;border:1px solid rgba(229,181,103,.5);border-radius:9px;
@@ -585,6 +592,7 @@
   <div id="land-tasks"></div>
 </div>
 <div id="land-compass"><div id="land-compass-inner"></div></div>
+<button id="land-scan">扫描 · 空格</button>
 <button id="land-cam">机位 · 观察位</button>
 <button id="land-exit">返回轨道</button>
 <div id="land-hint">继续放大，降落至 <b id="lh-name">月球</b> 的表面</div>
@@ -1042,19 +1050,20 @@ function bakeEarthGround(cc){
   if(cc&&GF[cc.feat])GF[cc.feat](g,W2,H2,rnd,pal,cc);
   return c;
 }
-function bakeEarthHills(cc){
+function bakeEarthHills(cc,l2){
   const hc=cc&&cc.hill?cc.hill:'#4A6E6A';
   const feat=cc&&cc.feat;
   const W2=1600,H2=Math.ceil(H*0.3);
   const c=document.createElement('canvas');c.width=W2;c.height=H2;
   const g=c.getContext('2d');
-  g.fillStyle=hc;                              // 远山（周期 fbm 轮廓，feat 决定形态）
+  g.fillStyle=l2?'rgba(120,140,165,.5)':hc;    // 第二层：偏天色更淡
   g.beginPath();g.moveTo(0,H2);
   for(let x=0;x<=W2;x+=28){
     const aa=x/W2*TAU;
-    const v=fbm2(Math.cos(aa)*3+20,Math.sin(aa)*3+20,6250,3);
+    const v=fbm2(Math.cos(aa)*3+(l2?77:20),Math.sin(aa)*3+(l2?77:20),l2?9250:6250,3);
     let y;
-    if(feat==='alps')y=H2*(0.42-v*0.58);
+    if(l2)y=H2*(0.66-v*0.3);
+    else if(feat==='alps')y=H2*(0.42-v*0.58);
     else if(feat==='canyon')y=H2*(0.62-Math.floor(v*5)/5*0.32);
     else if(feat==='beach')y=H2*(0.86-v*0.1);
     else if(feat==='ice')y=H2*(0.76-v*0.26);
@@ -1251,6 +1260,9 @@ const ACHV=[
  ['sn','恒星挽歌','目击一次超新星爆发'],
  ['uranus','侧滚的世界','近距离确认了天王星的躺转'],
  ['grand-tour','环游行星','登陆过全部 12 类星球世界'],
+ ['stormhunter','风暴行者','在尘暴中完成一次样本采集'],
+ ['photo-aurora','极光摄影','用相机拍下极光爆发的瞬间'],
+ ['photo-storm','风暴快门','在尘暴中按下快门'],
 ];
 function achvGet(){try{return JSON.parse(localStorage.getItem('atlas-achv')||'{}')}catch(e){return{}}}
 function unlockAchv(id){
@@ -1420,6 +1432,12 @@ const CONTINENTS=[
 ];
 const CONTINENT_BY_ID={};CONTINENTS.forEach(c=>CONTINENT_BY_ID[c.id]=c);
 const SAMPLE_NAMES={
+  everest:['EV-01 昆布冰川冰','EV-02 高山岩石碎屑','EV-03 风暴雪晶'],
+  sahara:['SH-01 沙丘脊沙','SH-02 丘间盆地沙','SH-03 化石沙漠砂岩'],
+  reef:['GB-01 珊瑚枝砂','GB-02 礁坪贝壳砂','GB-03 洁白沙滩砂'],
+  iceland:['IS-01 黑沙火山灰','IS-02 冰川裂隙冰','IS-03 地热硫晶体'],
+  uyuni:['UY-01 盐壳结晶','UY-02 卤水镁盐','UY-03 层状石膏'],
+  kilimanjaro:['KJ-01 高地草籽','KJ-02 火山灰壤','KJ-03 云雾林叶片'],
   moon:['KS-01 静海玄武岩','KS-02 高地斜长岩','KS-03 月壤玻璃珠'],
   earth:['PL-01 温带草原植被','PL-02 火山凝灰岩','PL-03 湖畔藻类样本'],
   mars:['MR-01 赤铁矿石','MR-02 干涸河床沉积物','MR-03 极地干冰芯'],
@@ -2862,6 +2880,89 @@ function drawLandDust(t,dt){
   }
   ctx.globalAlpha=1;
 }
+function cycleScan(){
+  if(!land||land.mode!=='surface')return;
+  const now=performance.now();
+  if(land.scanAt&&now-land.scanAt<2500)return;
+  land.scanAt=now;
+  land.rv={};
+  const cfg=land.id==='earth'?CONTINENT_BY_ID[land.continent]:landCfg(land.id);
+  let hits=0;
+  for(let i=0;i<cfg.yaws.length;i++)if(!land.samples[i]){land.rv[i]=now+7000;hits++;}
+  if(RARE[land.id]&&!land.rareFound)land.rvR=now+7000;
+  try{tone(1180,0.09,'sine',0.04);tone(880,0.14,'sine',0.04,0.09);}catch(e){}
+  if(hits===0&&!land.rvR)toast('扫描完成：附近没有新信号');
+}
+function drawScanPulse(t){                     // 扫描扩散环
+  if(!land.scanAt)return;
+  const k=(t-land.scanAt)/1300;
+  if(k<0||k>1)return;
+  for(let q=0;q<2;q++){
+    const k2=clamp(k-q*0.16,0,1);
+    if(k2<=0||k2>=1)continue;
+    const r=k2*Math.max(W,H)*0.7;
+    ctx.strokeStyle='rgba(120,235,190,'+(0.5*(1-k2)).toFixed(2)+')';
+    ctx.lineWidth=2.6-q;
+    ctx.beginPath();ctx.arc(W/2,H*0.62,r,0,TAU);ctx.stroke();
+  }
+}
+function landEventTick(cc,dayness,mix){        // 动态事件推进
+  if(!land||land.mode!=='surface')return;
+  const now=performance.now();
+  if(land.ev){
+    if(now-land.ev.t0>land.ev.dur){land.ev=null;land.evLast=now;}
+    return;
+  }
+  if(!land.evLast)land.evLast=now-14000;
+  if(now-land.evLast<22000+Math.random()*18000)return;
+  const cands=[];
+  const f=cc?cc.feat:'';
+  if(f==='canyon'||f==='savanna')cands.push('duststorm');
+  if(f==='terraces'||f==='alps'||f==='beach'||f==='savanna')cands.push('flock');
+  if(dayness<-0.2)cands.push('meteorstorm');
+  if(cc&&cc.aurora&&mix<0.6)cands.push('auroraburst');
+  if(!cands.length){land.evLast=now-10000;return;}
+  const type=cands[(Math.random()*cands.length)|0];
+  land.ev={type,t0:now,dur:type==='duststorm'?9000:type==='flock'?8000:type==='meteorstorm'?12000:8000};
+  land.evLast=now;
+  toast(type==='duststorm'?'尘暴前锋接近':type==='flock'?'鸟群惊飞':type==='meteorstorm'?'流星雨时段开始':'极光爆发增强');
+  try{tone(type==='duststorm'?220:660,0.2,'sine',0.05);}catch(e){}
+}
+function drawLandEvent(t){                     // 事件视觉
+  if(!land.ev)return;
+  const k=(performance.now()-land.ev.t0)/land.ev.dur;
+  if(k<0||k>1)return;
+  const pk=Math.sin(Math.PI*clamp(k,0,1));
+  if(land.ev.type==='duststorm'){
+    const hyP=land.camP?land.camP.hy*H:H*0.46;
+    for(let L=0;L<3;L++){
+      const lx=((t*(0.05+L*0.02))%(W*1.6))-W*0.3;
+      const ly=hyP-H*0.04+L*H*0.14;
+      const fg2=ctx.createRadialGradient(0,0,0,0,0,150);
+      fg2.addColorStop(0,'rgba(190,130,60,'+(0.3*pk*(1-L*0.22)).toFixed(2)+')');
+      fg2.addColorStop(1,'rgba(190,130,60,0)');
+      ctx.fillStyle=fg2;
+      ctx.save();ctx.translate(lx,ly);ctx.scale(1.9,0.4);ctx.beginPath();ctx.arc(0,0,150,0,TAU);ctx.fill();ctx.restore();
+    }
+    ctx.strokeStyle='rgba(200,150,90,'+(0.25*pk).toFixed(2)+')';ctx.lineWidth=1;
+    for(let i=0;i<22;i++){
+      const sx=((i*137.7+t*0.55)%(W+60))-30,sy=(i*89.3+t*0.1)%H;
+      ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+9,sy+2.4);ctx.stroke();
+    }
+  }
+  if(land.ev.type==='flock'){
+    const hhP=land.camP?land.camP.hh*H:H*0.3;
+    for(let i=0;i<12;i++){
+      const bx=((t*0.00024+i*0.055)%1.4-0.2)*W;
+      const by=hhP+H*(0.03+((i*0.37)%0.09))+Math.sin(t*0.002+i)*6;
+      drawSoarBird(t,bx,by,4.5+(i%3),0,'rgba(30,28,26,.7)');
+    }
+  }
+  if(land.ev.type==='meteorstorm'){
+    if(t-(land.evLastM||0)>340){land.evLastM=t;
+      meteors.push({x:Math.random()*W,y:Math.random()*H*0.4,ang:Math.PI*(0.65+Math.random()*0.5),spd:0.9+Math.random()*0.5,born:t,dur:600+Math.random()*400});}
+  }
+}
 function drawLand(t,dt){
   const cfg=landCfg(land.id);
   const e=t-land.pt;
@@ -2899,34 +3000,36 @@ function drawLand(t,dt){
   }
   if(e>2250&&e<2650)ctx.translate((Math.random()-0.5)*3.4,(Math.random()-0.5)*3.4);   // 触地震屏
   if(land.id==='moon')drawLandMoon(t,seq.drop);
-  else if(land.id==='earth'){drawEarthMode(t,dt,seq);return;}
+  else if(land.id==='earth'){drawEarthMode(t,dt,seq);land.noCraft=true;}
   else if(cfg.special==='sun')drawLandSun(t);
   else if(cfg.special==='sun')drawLandSun(t);
   else if(cfg.gas)drawLandGas(t,cfg,seq.drop);
   else drawLandGeneric(t,cfg,seq.drop);
   drawLandSamples(t,cfg.gcol);
-  // 触地：尘爆 + 舱体驻留
-  if(e>=2400&&!land.touched){
-    land.touched=true;
-    landDustBurst(W/2,H*0.78,52,landCfg(land.id).dust||'#9A968C',1.2);
-    rumble(0.55);
-    document.body.classList.add('land-settled');
-    startWind(land.id);
-    $('land-title').textContent=landCfg(land.id).label+' · 地表';
-    setTimeout(()=>toast(landCfg(land.id).label+'着陆成功——拖动环视，完成任务'),400);
-  }
-  if(e<2750)drawCraft(W/2,seq.craftY,seq.craftS*(seq.squash||1),seq.flame,t,seq.ground);
-  else{
-    drawCraft(W/2,H*0.985,0.92,false,t,true);              // 舱体驻留画面底部（更大更近）
-    const bl2=Math.sin(t*0.004)>0.2;                   // 舱顶信标灯
-    if(bl2){
-      ctx.fillStyle='rgba(255,90,70,.95)';
-      ctx.beginPath();ctx.arc(W/2,H*0.985-0.92*26,3.2,0,TAU);ctx.fill();
-      ctx.strokeStyle='rgba(255,90,70,.35)';ctx.lineWidth=1;
-      ctx.beginPath();ctx.arc(W/2,H*0.985-0.92*26,7,0,TAU);ctx.stroke();
+  // 触地：尘爆 + 舱体驻留（earth 走 3D 选点流程，无舱体——整体跳过）
+  if(!land.noCraft){
+    if(e>=2400&&!land.touched){
+      land.touched=true;
+      landDustBurst(W/2,H*0.78,52,landCfg(land.id).dust||'#9A968C',1.2);
+      rumble(0.55);
+      document.body.classList.add('land-settled');
+      startWind(land.id);
+      $('land-title').textContent=landCfg(land.id).label+' · 地表';
+      setTimeout(()=>toast(landCfg(land.id).label+'着陆成功——拖动环视，完成任务'),400);
     }
+    if(e<2750)drawCraft(W/2,seq.craftY,seq.craftS*(seq.squash||1),seq.flame,t,seq.ground);
+    else{
+      drawCraft(W/2,H*0.985,0.92,false,t,true);              // 舱体驻留画面底部（更大更近）
+      const bl2=Math.sin(t*0.004)>0.2;                   // 舱顶信标灯
+      if(bl2){
+        ctx.fillStyle='rgba(255,90,70,.95)';
+        ctx.beginPath();ctx.arc(W/2,H*0.985-0.92*26,3.2,0,TAU);ctx.fill();
+        ctx.strokeStyle='rgba(255,90,70,.35)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.arc(W/2,H*0.985-0.92*26,7,0,TAU);ctx.stroke();
+      }
+    }
+    drawLandDust(t,dt);
   }
-  drawLandDust(t,dt);
   // 罗盘
   const ci=$('land-compass-inner');
   if(ci)ci.style.transform='translateX('+(-(((land.yaw%TAU)+TAU)%TAU)/TAU*1080)+'px)';
@@ -2965,6 +3068,9 @@ function drawLand(t,dt){
       ctx.fillText(fx.txt,fx.x,fx.y-14-k*22);
     }
   }
+  if(land.mode==='surface'&&!land.scanTip){land.scanTip=1;setTimeout(()=>toast('按 空格 扫描地表信号，定位采样点'),2000);}
+  if(land.scanAt)drawScanPulse(t);
+  if(land.id==='earth')drawLandEvent(t);
   const vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.36,W/2,H/2,Math.max(W,H)*0.82);
   vg.addColorStop(0,'rgba(3,4,12,0)');vg.addColorStop(1,'rgba(3,4,12,.42)');
   ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
@@ -2975,7 +3081,7 @@ function drawLandSamples(t,color){
   const gy=(land.camP?land.camP.hy:0.46)*H+H*0.22;
   // 稀有遗物（紫色大菱形，探索彩蛋）
   const rc=RARE[land.id];
-  if(rc&&!land.rareFound){
+  if(rc&&!land.rareFound&&land.rvR&&land.rvR>performance.now()){
     const rx=sampleScreenX(rc.yaw);
     if(rx>-60&&rx<W+60){
       const pu=0.5+0.5*Math.sin(t*0.003);
@@ -2993,6 +3099,7 @@ function drawLandSamples(t,color){
   }
   for(let i=0;i<cfg.yaws.length;i++){
     if(land.samples[i])continue;
+    if(!land.rv||!land.rv[i]||land.rv[i]<performance.now())continue;   // 需扫描显形
     const sx=sampleScreenX(cfg.yaws[i]);
     if(sx<-40||sx>W+40)continue;
     const pu=0.5+0.5*Math.sin(t*0.005+i);
@@ -3432,7 +3539,8 @@ function bakeGF_ice(g,W2,H2,rnd,pal,cc){
 function drawContinentSky(t,mix,hhPx){
   const cc=CONTINENT_BY_ID[land.continent];
   if(!cc||!cc.aurora||mix>=0.6)return;         // 极光帘幕（夜面）
-  const au=clamp((0.6-mix)/0.6,0,1);
+  let au=clamp((0.6-mix)/0.6,0,1);
+  if(land.ev&&land.ev.type==='auroraburst')au=Math.min(1,au*1.9+0.15);
   const aBase=(hhPx||H*0.3)+H*0.14;
   for(let b=0;b<3;b++){
     const bx=W*(0.22+b*0.28)+Math.sin(t*0.00035+b*2.1)*W*0.08;
@@ -3461,6 +3569,28 @@ function drawSoarBird(t,cx,cy,r,ang,col){
   ctx.beginPath();ctx.moveTo(-r,0);ctx.quadraticCurveTo(0,-r*0.55,r*0.18,0);
   ctx.quadraticCurveTo(0,r*0.18,-r,0);ctx.stroke();
   ctx.restore();ctx.lineCap='butt';
+}
+function bakeNearLayer(cc){                    // 近景前景剪影层（快速视差）
+  const pal=cc&&cc.ground?cc.ground:{top:'#4E7E58',mid:'#38664A',low:'#24523E'};
+  const W2=1600,NH=Math.ceil(H*0.2);
+  const c=document.createElement('canvas');c.width=W2;c.height=NH;
+  const g=c.getContext('2d');
+  const rnd=mulberry(9310);
+  const dark=cc&&cc.feat==='ice'?'rgba(150,170,195,.55)':'rgba(10,18,12,.55)';
+  g.strokeStyle=dark;g.lineCap='round';
+  for(let i=0;i<120;i++){                      // 前景草丛
+    const x=rnd()*W2,y=NH*(0.62+rnd()*0.38),h=NH*(0.1+rnd()*0.22);
+    g.lineWidth=1.2+rnd()*1.8;
+    g.beginPath();g.moveTo(x,y);
+    g.quadraticCurveTo(x+(rnd()-0.5)*8,y-h*0.55,x+(rnd()-0.5)*14,y-h);
+    g.stroke();
+  }
+  g.fillStyle=dark;
+  for(let i=0;i<8;i++){                        // 前景石块
+    const x=rnd()*W2,y=NH*(0.66+rnd()*0.34),r=4+rnd()*9;
+    g.beginPath();g.moveTo(x-r,y);g.lineTo(x-r*0.4,y-r*0.75);g.lineTo(x+r*0.6,y-r*0.55);g.lineTo(x+r,y);g.closePath();g.fill();
+  }
+  return c;
 }
 function drawContinentGroundFx(t,drop,cc){
   if(!cc)return;
@@ -3649,6 +3779,20 @@ function drawLandEarth(t,drop){
     ctx.globalAlpha=clamp(1-mix*1.6,0,0.9);
     ctx.save();ctx.beginPath();ctx.rect(0,0,W,H*0.3);ctx.clip();
     for(let k=0;k<4;k++){ctx.drawImage(fgSpr[k],ox-W,-H*0.05);ctx.drawImage(fgSpr[k],ox,-H*0.05);}
+    const ga=clamp(1-mix*1.8,0,1)*0.5;       // 银河带（斜向雾带+亮斑）
+    if(ga>0.03){
+      ctx.save();ctx.translate(W*0.55,H*0.12);ctx.rotate(-0.32);
+      const gal=ctx.createLinearGradient(0,-70,0,70);
+      gal.addColorStop(0,'rgba(150,170,220,0)');
+      gal.addColorStop(0.5,'rgba(170,185,230,'+(0.14*ga).toFixed(2)+')');
+      gal.addColorStop(1,'rgba(150,170,220,0)');
+      ctx.fillStyle=gal;ctx.fillRect(-W,-70,W*2,140);
+      const gc2=ctx.createRadialGradient(W*0.2,0,0,W*0.2,0,120);
+      gc2.addColorStop(0,'rgba(220,225,250,'+(0.2*ga).toFixed(2)+')');
+      gc2.addColorStop(1,'rgba(220,225,250,0)');
+      ctx.fillStyle=gc2;ctx.beginPath();ctx.arc(W*0.2,0,120,0,TAU);ctx.fill();
+      ctx.restore();
+    }
     ctx.restore();
     ctx.globalAlpha=1;
   }
@@ -3680,12 +3824,28 @@ function drawLandEarth(t,drop){
     ctx.drawImage(land.clouds,2400-coff,-H*0.02);
     ctx.globalAlpha=1;
   }else land.clouds=bakeCloudBand();
+  if(mix>0.4){                                 // 高层卷云（慢速独立层）
+    ctx.strokeStyle='rgba(235,242,250,'+(0.16*mix).toFixed(2)+')';
+    for(let i=0;i<4;i++){
+      const cy3=H*(0.08+i*0.05);
+      const cx3=((t*(0.006+i*0.002)+i*700)%(W+400))-200;
+      ctx.lineWidth=2+i;
+      ctx.beginPath();ctx.moveTo(cx3,cy3);
+      ctx.quadraticCurveTo(cx3+90,cy3-5,cx3+210,cy3+2);
+      ctx.stroke();
+    }
+  }
   drawContinentSky(t,mix,hhPx);
   // 地表
-  if(!land.g1){land.g1=bakeEarthGround(cc);land.city=bakeCityLights(cc.feat);land.hills=bakeEarthHills(cc);}
+  if(!land.g1){land.g1=bakeEarthGround(cc);land.city=bakeCityLights(cc.feat);land.hills=bakeEarthHills(cc);land.hills2=bakeEarthHills(cc,1);land.near=bakeNearLayer(cc);}
   const off=Math.round((((yaw*W*0.9)%1600)+1600)%1600);
   const hoff=Math.round((((yaw*W*0.34)%1600)+1600)%1600);
   const hw=1600*camP.zh,hh2=H*0.3*camP.zh;
+  const h2off=Math.round((((yaw*W*0.13)%1600)+1600)%1600);
+  ctx.globalAlpha=0.6;
+  ctx.drawImage(land.hills2,-h2off*camP.zh,hhPx-H*0.075*camP.zh,hw,hh2*0.85);
+  ctx.drawImage(land.hills2,hw-h2off*camP.zh,hhPx-H*0.075*camP.zh,hw,hh2*0.85);
+  ctx.globalAlpha=1;
   ctx.drawImage(land.hills,-hoff*camP.zh,hhPx+drop,hw,hh2);
   ctx.drawImage(land.hills,hw-hoff*camP.zh,hhPx+drop,hw,hh2);
   // 云影（大面积柔影缓慢扫过地表）
@@ -3699,6 +3859,12 @@ function drawLandEarth(t,drop){
   ctx.drawImage(land.g1,-off*camP.zg,hyPx+drop,gw,gh2);
   ctx.drawImage(land.g1,gw-off*camP.zg,hyPx+drop,gw,gh2);
   drawContinentGroundFx(t,drop,cc);
+  if(land.near){                               // 近景前景层（1.55x 视差）
+    const nH=H*0.2*camP.zg,noff=Math.round((((yaw*W*1.4)%1600)+1600)%1600);
+    const nw=1600*camP.zg;
+    ctx.drawImage(land.near,-noff*camP.zg,H-nH+drop,nw,nH);
+    ctx.drawImage(land.near,nw-noff*camP.zg,H-nH+drop,nw,nH);
+  }
   // 城市灯火（夜面；南极冰原无城市天际线）
   if(dayness<-0.05&&cc.feat!=='ice'){
     ctx.globalAlpha=clamp(-dayness*1.6,0,1);
@@ -3742,6 +3908,8 @@ function drawLandEarth(t,drop){
     ctx.restore();
   }
 
+  landEventTick(cc,dayness,mix);
+  drawLandEvent(t);
   // 日出判定
   if(dayness>-0.02&&dayness<0.12&&land.sunArmed){land.sunArmed=false;unlockAchv('sunrise');toast('任务达成：观看一次日出');}
   if(dayness<-0.4)land.sunArmed=true;
@@ -4740,7 +4908,7 @@ function tapSample(px,py){
   const cfg=land.id==='earth'?CONTINENT_BY_ID[land.continent]:landCfg(land.id);
   const gy=(land.camP?land.camP.hy:0.46)*H+H*0.22;
   const rc=RARE[land.id];
-  if(rc&&!land.rareFound){
+  if(rc&&!land.rareFound&&land.rvR&&land.rvR>performance.now()){
     const rx=sampleScreenX(rc.yaw);
     if(Math.hypot(px-rx,py-gy)<38){
       land.rareFound=true;
@@ -4754,9 +4922,14 @@ function tapSample(px,py){
   }
   for(let i=0;i<cfg.yaws.length;i++){
     if(land.samples[i])continue;
+    if(!land.rv||!land.rv[i]||land.rv[i]<performance.now()){
+      if(!land.missTip||performance.now()-land.missTip>3000){land.missTip=performance.now();toast('未检测到信号——按 空格 扫描');}
+      continue;
+    }
     const sx=sampleScreenX(cfg.yaws[i]);
     if(Math.hypot(px-sx,py-gy)<36){
       land.samples[i]=true;
+      if(land.ev&&land.ev.type==='duststorm')unlockAchv('stormhunter');
       const nm2=(SAMPLE_NAMES[land.continent]&&SAMPLE_NAMES[land.continent][i])||('样本 '+(i+1));
       landFx.push({x:sx,y:gy,born:performance.now(),txt:'+ '+nm2});
       try{const sp=JSON.parse(localStorage.getItem('atlas-spec')||'{}');(sp[land.id]=sp[land.id]||{})[nm2]=1;localStorage.setItem('atlas-spec',JSON.stringify(sp));}catch(err){}
@@ -4989,6 +5162,7 @@ document.addEventListener('pointerdown',e=>{
 });
 
 /* ── 测距工具 ── */
+$('land-scan').onclick=cycleScan;
 $('land-cam').onclick=cycleCam;
 let measureMode=false,measureA=null,measureB=null;
 $('land-exit').onclick=()=>{
@@ -5094,7 +5268,7 @@ document.querySelectorAll('.modal').forEach(m=>{
 const keysHeld={};
 window.addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT')return;
-  if(e.code==='Space'){e.preventDefault();togglePlay();}
+  if(e.code==='Space'){e.preventDefault();if(LAYER===0&&land&&land.mode==='surface'){cycleScan();return;}togglePlay();}
   if(e.key==='Escape'){
     if(storyActive){endStory();return;}
     if(LAYER===0){exitLand();return;}
@@ -5112,6 +5286,12 @@ window.addEventListener('keydown',e=>{
   if((e.key==='e'||e.key==='E')&&LAYER===0&&land&&land.mode==='surface'){cycleCam();return;}
   if(e.key==='v'||e.key==='V')$('btn-snd').click();
   if(e.key==='m'||e.key==='M')$('btn-measure').click();
+  if((e.key==='c'||e.key==='C')&&LAYER===0&&land&&land.mode==='surface'){
+    const pc=CONTINENT_BY_ID[land.continent];
+    const pd=Math.cos(land.yaw-1.2);
+    if(pc&&pc.aurora&&pd<0.2)unlockAchv('photo-aurora');
+    if(land.ev&&land.ev.type==='duststorm')unlockAchv('photo-storm');
+  }
   if(e.key==='c'||e.key==='C')$('btn-shot').click();
   if(e.key==='t'||e.key==='T')$('btn-today').click();
   if(e.key==='+'||e.key==='='){
