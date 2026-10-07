@@ -331,6 +331,7 @@
     box-shadow:0 6px 24px rgba(0,0,0,.45), inset -6px -6px 14px rgba(0,0,0,.35);
   }
   .dossier-body{padding:20px 28px 30px;flex:1}
+  .dossier-exit-bar{display:none}
   .stats{
     display:grid;grid-template-columns:1fr 1fr;
     gap:1px;background:var(--line);
@@ -551,8 +552,17 @@
     .bottom-dock{gap:8px;padding:0 8px calc(env(safe-area-inset-bottom,0px) + 10px)}
     body.dossier-open .bottom-dock{padding-right:8px}
     aside#dossier{width:100vw;border-left:none}
-    .dossier-head{padding:20px 20px 14px}
+    .dossier-head{position:sticky;top:0;z-index:5;background:#0B0F22;padding:14px 18px 12px}
+    #dossier-close{width:44px;height:44px;top:12px;right:12px;border-color:rgba(229,181,103,.6);color:var(--ink);background:rgba(9,13,28,.72)}
+    #dossier-close svg{width:15px;height:15px}
     .dossier-body{padding:16px 20px 26px}
+    .dossier-exit-bar{display:block;position:sticky;bottom:0;z-index:5;padding:14px 18px calc(env(safe-area-inset-bottom,0px) + 12px);background:linear-gradient(rgba(11,15,34,0),rgba(11,15,34,.96) 40%)}
+    .dossier-exit-bar button{width:100%;padding:14px;border-radius:12px;border:1px solid rgba(229,181,103,.55);background:rgba(229,181,103,.14);color:var(--gold);font-size:15px;letter-spacing:3px}
+    .modal{align-items:stretch;justify-content:stretch}
+    .modal-card{width:100vw;height:100%;max-height:100%;border-radius:0;border-left:none;border-right:none;display:flex;flex-direction:column;overflow-y:auto;padding:calc(env(safe-area-inset-top,0px) + 62px) 18px calc(env(safe-area-inset-bottom,0px) + 22px)}
+    .modal-card h2{padding-right:52px;font-size:22px;letter-spacing:3px}
+    .modal-sub{margin-bottom:14px}
+    .modal-close{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:10px;float:none;z-index:45;width:44px;height:44px;border-radius:50%;background:rgba(9,13,28,.85);border-color:rgba(229,181,103,.55);color:var(--ink)}
     #d-name{font-size:30px;letter-spacing:5px}
     #tooltip{display:none}
     .time-dock{flex-wrap:wrap;justify-content:center;row-gap:6px;max-width:calc(100vw - 16px)}
@@ -689,6 +699,7 @@
     <button id="d-compare">将此天体加入对比</button>
     <div class="data-note">数据来源：NASA NSSDCA 行星数据表（2025-03）。轨道位置为简化模型（匀速圆轨道近似），仅示意方位。</div>
   </div>
+  <div class="dossier-exit-bar"><button id="dossier-exit">关闭档案 · 返回观测</button></div>
 </aside>
 
 <div class="modal" id="egg-modal">
@@ -6216,6 +6227,7 @@ function closeDossier(){
   selectedId=null;
 }
 $('dossier-close').onclick=closeDossier;
+$('dossier-exit').onclick=closeDossier;
 
 function focusBody(id,opts){
   if(opts&&opts.panel===false)focusBody.quiet=true;
