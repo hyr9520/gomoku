@@ -2059,7 +2059,7 @@ function closeupBall(b,r){
   const phase=(simDays()*24/b.rotH)%1;
   const tl=b.tilt&&b.id!=='sun'?b.tilt*DEG:0;
   let e=CBALL.get(b.id);
-  const S=Math.min(560,Math.max(200,Math.ceil(r*2.2)));
+  const S=Math.min(640,Math.max(240,Math.ceil(r*2.6)));
   if(!e||e.S<S*0.75||(Math.abs(e.phase-phase)>0.09&&performance.now()-e.bT>48)){
     const cv=document.createElement('canvas');cv.width=cv.height=S;
     const g=cv.getContext('2d');
@@ -2086,7 +2086,7 @@ const SW={cv:null,g:null};
 function atmoSprite(c,k){
   let sp=ATMO_SPR[c];
   if(!sp){
-    const S=128;sp=document.createElement('canvas');sp.width=sp.height=S;
+    const S=256;sp=document.createElement('canvas');sp.width=sp.height=S;
     const g=sp.getContext('2d');
     const gg=g.createRadialGradient(S/2,S/2,S/2*0.80,S/2,S/2,S/2);
     gg.addColorStop(0,'rgba('+c+',0)');
@@ -2257,12 +2257,14 @@ function drawTerminator(s,r){
   ctx.save();
   ctx.beginPath();ctx.arc(s.x,s.y,r*1.004,0,TAU);ctx.clip();
   const soft=r>=60;                                     // 特写：夜侧提亮保留表面细节
-  const g=ctx.createLinearGradient(s.x+gx*r,s.y+gy*r,s.x-gx*r,s.y-gy*r);
+  // 球面光照：遮罩等值线是以"日侧投影中心"为心的圆弧 → 明暗分界呈弧形（替代线性渐变的生硬直线）
+  const lx=s.x+gx*r*0.55, ly=s.y+gy*r*0.55;
+  const g=ctx.createRadialGradient(lx,ly,r*0.5,lx,ly,r*2.0);
   g.addColorStop(0,'rgba(2,3,12,0)');
-  g.addColorStop(0.40,'rgba(2,3,12,'+(soft?'.02':'.03')+')');
-  g.addColorStop(0.58,'rgba(3,4,14,'+(soft?'.20':'.34')+')');
-  g.addColorStop(0.78,'rgba(2,3,12,'+(soft?'.38':'.60')+')');
-  g.addColorStop(1,'rgba(1,2,9,'+(soft?'.52':'.72')+')');
+  g.addColorStop(0.27,'rgba(2,3,12,'+(soft?'.02':'.04')+')');
+  g.addColorStop(0.45,'rgba(3,4,14,'+(soft?'.20':'.34')+')');
+  g.addColorStop(0.68,'rgba(2,3,12,'+(soft?'.40':'.60')+')');
+  g.addColorStop(1,'rgba(1,2,9,'+(soft?'.55':'.75')+')');
   ctx.fillStyle=g;
   ctx.fillRect(s.x-r,s.y-r,r*2,r*2);
   // 镜面高光：日侧偏移的柔光斑（球面反射高光，3D 感）
@@ -2593,9 +2595,9 @@ function bakeGasBand(cfg,layer){
     bg.addColorStop(0,st[i][0]);bg.addColorStop(1,st[i+1][0]);
     g.fillStyle=bg;
     g.beginPath();g.moveTo(0,y0);
-    const amp=layer?9:5;
-    for(let x=0;x<=W2;x+=60)g.lineTo(x,y0+Math.sin(x*0.011+layer*7+i*3)*(2+amp*0.4));
-    for(let x=W2;x>=0;x-=60)g.lineTo(x,y1+Math.sin(x*0.013+layer*5+i*2)*(2+amp*0.4));
+    const amp=layer?15:9;
+    for(let x=0;x<=W2;x+=60)g.lineTo(x,y0+Math.sin(x*0.011+layer*7+i*3)*(2+amp*0.4)+Math.sin(x*0.023+layer*3+i*1.7)*(1.5+amp*0.22));
+    for(let x=W2;x>=0;x-=60)g.lineTo(x,y1+Math.sin(x*0.013+layer*5+i*2)*(2+amp*0.4)+Math.sin(x*0.027+layer*2+i*2.3)*(1.5+amp*0.22));
     g.closePath();g.fill();
   }
   if(cfg.spot&&layer){                        // 木星大红斑
