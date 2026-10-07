@@ -2704,13 +2704,15 @@ function drawLandGeneric(t,cfg,drop){
     if(fgSpr){
       const ox=Math.round((((yaw*W*0.3)%W)+W)%W);
       ctx.globalAlpha=0.85;
-      for(let k=0;k<4;k++){ctx.drawImage(fgSpr[k],ox-W,-H*0.06);ctx.drawImage(fgSpr[k],ox,-H*0.06);}
+      const pkY2=(land.pitch||0)*W*0.18;
+      for(let k=0;k<4;k++){ctx.drawImage(fgSpr[k],ox-W,-H*0.06+pkY2);ctx.drawImage(fgSpr[k],ox,-H*0.06+pkY2);}
       ctx.globalAlpha=1;
     }
     if(cfg.sunBig){
       const sx=W/2+((1.6-yaw+Math.PI)%(TAU)-Math.PI)*W*0.4;
       if(sx>-120&&sx<W+120){
-        const sg=ctx.createRadialGradient(sx,H*0.2,0,sx,H*0.2,110);
+        const syBig=H*0.2+(land.pitch||0)*W*0.18;
+        const sg=ctx.createRadialGradient(sx,syBig,0,sx,syBig,110);
         sg.addColorStop(0,'rgba(255,250,235,.95)');sg.addColorStop(0.3,'rgba(255,240,210,.5)');sg.addColorStop(1,'rgba(255,240,210,0)');
         ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sx,H*0.2,110,0,TAU);ctx.fill();
       }
@@ -4162,9 +4164,10 @@ function drawLandMoon(t,drop){
   if(fgSpr){
     const ox=Math.round((((yaw*W*0.3)%W)+W)%W);
     ctx.globalAlpha=0.85;
+    const pkY=(land.pitch||0)*W*0.18;
     for(let k=0;k<4;k++){
-      ctx.drawImage(fgSpr[k],ox-W,-H*0.06);
-      ctx.drawImage(fgSpr[k],ox,-H*0.06);
+      ctx.drawImage(fgSpr[k],ox-W,-H*0.06+pkY);
+      ctx.drawImage(fgSpr[k],ox,-H*0.06+pkY);
     }
     ctx.globalAlpha=1;
   }
@@ -4924,6 +4927,42 @@ function drawLandEarth(t,drop){
     const sg=ctx.createRadialGradient(sx,sy2,0,sx,sy2,90);
     sg.addColorStop(0,'rgba(255,244,214,.95)');sg.addColorStop(0.25,'rgba(255,228,170,.5)');sg.addColorStop(1,'rgba(255,228,170,0)');
     ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sx,sy2,90,0,TAU);ctx.fill();
+  }
+  // 月亮：方位按月相（朔在太阳方向、望在对侧），盈亏亮面朝向太阳
+  {
+    const ph2=moonPhase(simDays());
+    const mYc=sunYaw+ph2*TAU;                    // 月亮黄经：朔=与太阳同向，望=对侧
+    const mx2=W/2+((mYc-yaw+Math.PI)%(TAU)-Math.PI)*W*0.55;
+    const my2=hyPx-H*0.34;
+    if(mx2>-60&&mx2<W+60){
+      const mAlpha=clamp(1.15-mix,0.18,0.95);    // 昼面月亮淡、夜面清晰
+      const illum=(1-Math.cos(ph2*TAU))/2;       // 日照比
+      const sunSx=W/2+((sunYaw-yaw+Math.PI)%(TAU)-Math.PI)*W*0.55;
+      const sunSy=hyPx-H*0.30;
+      ctx.globalAlpha=mAlpha;
+      const mh=ctx.createRadialGradient(mx2,my2,0,mx2,my2,34);
+      mh.addColorStop(0,'rgba(226,228,214,.30)');mh.addColorStop(1,'rgba(226,228,214,0)');
+      ctx.fillStyle=mh;ctx.beginPath();ctx.arc(mx2,my2,34,0,TAU);ctx.fill();
+      ctx.fillStyle='#E4E1D2';ctx.beginPath();ctx.arc(mx2,my2,13,0,TAU);ctx.fill();
+      const bd=Math.atan2(my2-sunSy,mx2-sunSx);  // 月亮→背日方向
+      ctx.save();ctx.beginPath();ctx.arc(mx2,my2,13,0,TAU);ctx.clip();
+      ctx.fillStyle='rgba(10,14,26,.9)';
+      ctx.beginPath();ctx.arc(mx2+Math.cos(bd)*28*(1-illum),my2+Math.sin(bd)*28*(1-illum),13.5,0,TAU);ctx.fill();
+      ctx.restore();
+      ctx.globalAlpha=1;
+    }
+  }
+  // 人造卫星：夜面偶发匀速亮点划过高空（ISS 类）
+  if(mix<0.5){
+    if(!land.satT0)land.satT0=t+20000+Math.random()*40000;
+    if(t>land.satT0){land.satT0=t+45000+Math.random()*60000;land.satFly=t;}
+    if(land.satFly&&t-land.satFly<4200){
+      const k=(t-land.satFly)/4200;
+      const sxx=W*(k*1.1-0.05), syy=H*(0.08+0.07*Math.sin(Math.PI*k));
+      const twk=0.55+0.45*Math.sin(t*0.02);
+      ctx.fillStyle='rgba(228,238,255,'+(0.9*twk*(1-mix*1.4)).toFixed(2)+')';
+      ctx.beginPath();ctx.arc(sxx,syy,1.8,0,TAU);ctx.fill();
+    }
   }
   // 云层（缓慢漂移）
   if(land.clouds){
