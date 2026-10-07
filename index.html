@@ -1362,6 +1362,8 @@ const ACHV=[
  ['photo-storm','风暴快门','在尘暴中按下快门'],
  ['discoverer','文明侦探','在地表发现一处奇观或遗迹'],
  ['beaconmaster','先行者之证','集齐全部六段先驱者留言'],
+ ['io-shadow','凌影见证者','目睹一次木星卫星凌影'],
+ ['polymath','博学者','单轮测验全部答对'],
 ];
 function achvGet(){try{return JSON.parse(localStorage.getItem('atlas-achv')||'{}')}catch(e){return{}}}
 function unlockAchv(id){
@@ -1439,7 +1441,7 @@ const LAND_CFG={
   zones:[{n:'阿弗洛狄忒台地',c:'rgba(230,190,110,.1)'},{n:'尼亚obe平原',c:'rgba(160,120,60,.14)'}],sky:{top:'#7A5A1C',bot:'#D8B060'},fog:0.55,ground:{top:'#9A7A38',mid:'#6A5028',low:'#3A2A14'},craters:2,rocks:50,veh:'probe',yaws:[0.9,2.4,4.3],task:'完成三站大气读数',gcol:'#F5E8B8'},
   mercury:{label:'水星',obsName:'观测一次流星雨',tex:'mercury',
   zones:[{n:'卡路里盆地',c:'rgba(160,158,150,.12)'},{n:'北极永久阴影区',c:'rgba(80,82,92,.18)'}],sky:'space',sunBig:true,ground:{top:'#8A8880',mid:'#6A6860',low:'#3A3934'},craters:16,rocks:110,yaws:[0.5,2.0,3.8],task:'采集岩石样本',gcol:'#F1DFAE'},
-  jupiter:{label:'木星',obsName:'观测一次风暴带',gas:true,bands:[['#C8A878',0],['#E8D0A8',0.13],['#B89068',0.25],['#E8C89C',0.37],['#A87850',0.5],['#E0C090',0.63],['#B89068',0.78],['#D8B888',1]],spot:true,flash:true,veh:'balloon',yaws:[0.8,2.3,4.2],task:'乘坐浮空观测站巡观测风暴',gcol:'#F5E8C8'},
+  jupiter:{label:'木星',obsName:'目睹木星奇观（风暴带或卫星凌影）',gas:true,bands:[['#C8A878',0],['#E8D0A8',0.13],['#B89068',0.25],['#E8C89C',0.37],['#A87850',0.5],['#E0C090',0.63],['#B89068',0.78],['#D8B888',1]],spot:true,flash:true,veh:'balloon',yaws:[0.8,2.3,4.2],task:'乘坐浮空观测站巡观测风暴',gcol:'#F5E8C8'},
   saturn:{label:'土星',ringSky:true,obsName:'记录一场环雨',gas:true,bands:[['#D8C090',0],['#E8D4A8',0.2],['#C8B088',0.4],['#E0CCA0',0.6],['#C0A878',0.8],['#D4BC8C',1]],veh:'balloon',yaws:[0.7,2.1,4.0],task:'乘坐浮空观测站巡观云层',gcol:'#F5E8C8'},
   uranus:{label:'天王星',obsName:'观测一次钻石雨',gas:true,bands:[['#8AC8CE',0],['#A8D8DC',0.3],['#90CCD2',0.55],['#B0E0E2',0.8],['#98D0D6',1]],veh:'balloon',yaws:[0.9,2.4,4.3],task:'观测大气特征',gcol:'#D8F0F2'},
   neptune:{label:'海王星',obsName:'观测一次钻石雨',ringSky:'dim',gas:true,bands:[['#3A5AC8',0],['#4A6AD8',0.25],['#2E4AB8',0.5],['#5070E0',0.75],['#3A52C4',1]],flash:true,veh:'balloon',yaws:[0.8,2.2,4.1],task:'观测风暴特征',gcol:'#C8D8F5'},
@@ -1553,7 +1555,9 @@ const EGGS=[
  {id:'darkspot',planet:'neptune',yaw:2.8,draw:'darkspot',name:'大暗斑',
   desc:'1989 年旅行者 2 号飞掠时拍下的椭圆形风暴，内里风速超过每小时 2100 公里。几年后哈勃再看，它已经消失——海王星的风暴来得猛烈，散得也干脆，像这颗行星一贯的脾气。'},
  {id:'urings',planet:'uranus',yaw:2.0,draw:'urings',name:'天王星环拱',
-  desc:'1977 年 3 月 10 日，天王星掩一颗恒星的观测中，光度计读数突然抖动了五次——天文学家由此发现了环绕它的暗环。因为整颗行星躺着自转（轴倾角 97.8°），从云顶望去，这些环不是横在天上，而是一座几乎竖直的拱门。'}
+  desc:'1977 年 3 月 10 日，天王星掩一颗恒星的观测中，光度计读数突然抖动了五次——天文学家由此发现了环绕它的暗环。因为整颗行星躺着自转（轴倾角 97.8°），从云顶望去，这些环不是横在天上，而是一座几乎竖直的拱门。'},
+ {id:'cydonia',planet:'mars',yaw:4.9,draw:'mesa',name:'基多尼亚台地',
+  desc:'1976 年「海盗 1 号」在这片台地拍到一张著名的「人脸」——低分辨率下，阴影与轮廓恰好拼出了眼与鼻的错觉。2001 年火星全球勘测者以更高分辨率重拍：只是一座被风蚀出棱线的普通台地。这张「脸」成了行星科学最著名的一堂课——我们想看见的东西，未必真的在那里。'}
 ];
 const BEACONS=[
  {id:'bmars',planet:'mars',yaw:5.4,name:'先行者信标 · K-7',
@@ -3459,6 +3463,10 @@ function eggThumbURI(eg){                      // 日志缩略图：sprite 直�
     g9.beginPath();g9.ellipse(60,37,12,28,0,-Math.PI*0.92,-Math.PI*0.08);g9.stroke();
     g9.strokeStyle='rgba(200,225,228,.4)';g9.lineWidth=1;
     g9.beginPath();g9.ellipse(60,37,17,34,0,-Math.PI*0.92,-Math.PI*0.08);g9.stroke();
+  }else if(eg.draw==='mesa'){
+    g9.fillStyle='rgba(196,120,70,.8)';g9.beginPath();g9.moveTo(28,58);g9.lineTo(38,32);g9.lineTo(64,28);g9.lineTo(88,42);g9.lineTo(92,58);g9.closePath();g9.fill();
+    g9.strokeStyle='rgba(120,60,30,.9)';g9.lineWidth=1.6;g9.beginPath();g9.moveTo(28,58);g9.lineTo(38,32);g9.lineTo(64,28);g9.lineTo(88,42);g9.lineTo(92,58);g9.stroke();
+    g9.fillStyle='rgba(255,205,160,.45)';g9.beginPath();g9.moveTo(38,32);g9.lineTo(64,28);g9.lineTo(58,40);g9.closePath();g9.fill();
   }else if(eg.draw==='beacon'){
     g9.strokeStyle='rgba(140,235,190,.9)';g9.lineWidth=1.6;
     g9.beginPath();g9.moveTo(52,60);g9.lineTo(57,22);g9.lineTo(63,22);g9.lineTo(68,60);g9.closePath();g9.stroke();
@@ -3658,12 +3666,13 @@ function landEventTick(cc,dayness,mix){        // 动态事件推进（全星球
     if(cc&&cc.aurora&&mix<0.6)cands.push('auroraburst');
   }else if(id==='mars')cands.push('duststorm');
   else if(id==='venus')cands.push('storm');
-  else if(id==='jupiter')cands.push('stormwall');
+  else if(id==='jupiter'){cands.push('stormwall');cands.push('moonshadow');}
   else if(id==='saturn')cands.push('ringrain');
   else if(id==='uranus'||id==='neptune')cands.push('diamondrain');
   else if(id==='moon'||id==='mercury'||id==='pluto')cands.push('meteorstorm');
   if(!cands.length){land.evLast=now-10000;return;}
   const type=cands[(Math.random()*cands.length)|0];
+  if(type==='moonshadow')land.evMoon=Math.random()<0.5?'io':'europa';
   land.ev={type,t0:now,dur:type==='duststorm'?9000:type==='flock'?8000:type==='meteorstorm'?12000:type==='stormwall'?10000:9000};
   land.evLast=now;
   const lc2=landCfg(id);                               // 现象观测任务：目睹 2.5s 即达成
@@ -3763,6 +3772,19 @@ function drawLandEggs(t,cc){                   // 地表奇观彩蛋（earth 按
         ctx.beginPath();ctx.arc(Math.cos(an)*rr,-H*0.12+Math.sin(an)*rr,1.4,0,TAU);ctx.fill();
       }
       ctx.restore();
+    }else if(eg.draw==='mesa'){                // 基多尼亚台地：平顶山剪影+光影棱线
+      const gy2=hyP+H*0.13;
+      ctx.save();ctx.translate(sx,gy2);
+      ctx.fillStyle='rgba(0,0,0,.22)';
+      ctx.beginPath();ctx.ellipse(0,4,H*0.15,H*0.018,0,0,TAU);ctx.fill();
+      ctx.fillStyle='rgba(178,108,62,.92)';
+      ctx.beginPath();
+      ctx.moveTo(-H*0.14,2);ctx.lineTo(-H*0.075,-H*0.075);ctx.lineTo(H*0.03,-H*0.09);ctx.lineTo(H*0.115,-H*0.045);ctx.lineTo(H*0.15,2);ctx.closePath();ctx.fill();
+      ctx.fillStyle='rgba(255,205,160,.35)';   // 光照面：恰好像"眉眼"的那一侧棱线
+      ctx.beginPath();ctx.moveTo(-H*0.075,-H*0.075);ctx.lineTo(H*0.03,-H*0.09);ctx.lineTo(-H*0.005,-H*0.038);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='rgba(110,55,28,.85)';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(-H*0.14,2);ctx.lineTo(-H*0.075,-H*0.075);ctx.lineTo(H*0.03,-H*0.09);ctx.lineTo(H*0.115,-H*0.045);ctx.lineTo(H*0.15,2);ctx.stroke();
+      ctx.restore();
     }else{
       if(!SPR_READY[eg.spr])continue;
       const h=(eg.h||110)*CP.zg;
@@ -3804,6 +3826,7 @@ function drawLandEvent(t){                     // 事件视觉
   if(!land)return;                             // 空守卫：exitLand 后帧尾仍可能进入
   if(land.obsAt&&!land.obsDone&&t>land.obsAt){ // 现象观测达成
     land.obsDone=true;land.obsAt=0;
+    if(land.ev&&land.ev.type==='moonshadow')unlockAchv('io-shadow');
     toast('任务达成：'+landCfg(land.id).obsName);
     try{tone(784,0.16,'sine',0.05);tone(988,0.2,'sine',0.05,0.13);}catch(e){}
     renderLandTasks();
@@ -3867,6 +3890,19 @@ function drawLandEvent(t){                     // 事件视觉
   if(land.ev.type==='meteorstorm'){
     if(t-(land.evLastM||0)>340){land.evLastM=t;
       meteors.push({x:Math.random()*W,y:Math.random()*H*0.4,ang:Math.PI*(0.65+Math.random()*0.5),spd:0.9+Math.random()*0.5,born:t,dur:600+Math.random()*400});}
+  }
+  if(land.ev.type==='moonshadow'){            // 木星卫星凌影：卫星+本影横穿云带（伊奥黄/欧罗巴白）
+    const mCol=land.evMoon==='europa'?'234,226,210':'228,196,124';
+    const mx=W*(0.06+0.88*k), my=H*(0.24+0.03*Math.sin(Math.PI*k));
+    const sx2=W*(0.03+0.90*k), sy2=H*0.40;    // 本影投在云带上，视差略滞后于卫星
+    const sg2=ctx.createRadialGradient(0,0,0,0,0,W*0.05);
+    sg2.addColorStop(0,'rgba(26,20,12,'+(0.58*pk).toFixed(2)+')');
+    sg2.addColorStop(1,'rgba(26,20,12,0)');
+    ctx.save();ctx.translate(sx2,sy2);ctx.scale(1,0.4);ctx.fillStyle=sg2;ctx.beginPath();ctx.arc(0,0,W*0.05,0,TAU);ctx.fill();ctx.restore();
+    ctx.fillStyle='rgba('+mCol+',.96)';ctx.beginPath();ctx.arc(mx,my,4.5,0,TAU);ctx.fill();
+    const hg3=ctx.createRadialGradient(mx,my,0,mx,my,15);
+    hg3.addColorStop(0,'rgba('+mCol+',.32)');hg3.addColorStop(1,'rgba('+mCol+',0)');
+    ctx.fillStyle=hg3;ctx.beginPath();ctx.arc(mx,my,15,0,TAU);ctx.fill();
   }
   if(land.ev.type==='stormwall'){             // 木星风暴带：暗橙涡旋带横移+带内闪电
     for(let L=0;L<3;L++){                      // 事件进度 k 驱动：保证 10s 内横穿画面
@@ -6599,6 +6635,10 @@ const NOTES=[
   '太阳绕银河系中心飞行一圈约需 2.3 亿年——上一次在这个位置时，恐龙刚刚出现在地球上。',
   '奥尔特云是包裹整个太阳系的冰质天体球壳，内缘约 2,000 AU，外缘延伸到约 10 万 AU（约 1.6 光年）之外——绝大多数彗星的家。',
   '在月球上你能看到地球"悬"在天上几乎不动——因为月球被潮汐锁定，永远以同一面朝着我们。',
+  '木卫二（欧罗巴）的冰壳之下，可能藏着比地球全部液态水加起来还多的海洋。',
+  '土卫二的南极会向太空喷出冰羽——卡西尼号曾从羽流中穿过，直接"尝"到了地下海的咸味。',
+  '木星环薄到几乎透明：1979 年旅行者 1 号恰好在逆光角度回望，它才第一次被人类看见。',
+  '基多尼亚的「人脸」最终被证明是光影错觉——科学最动人的地方，是它愿意承认并修正错误。',
 ];
 let noteIdx=Math.floor(Math.random()*NOTES.length);
 let noteFadeTimer=null;
@@ -6660,6 +6700,22 @@ const QUIZ=[
    note:'太阳的氢燃料大约还能维持 50 亿年，之后将膨胀为红巨星，最终坍缩成白矮星。'},
   {q:'哪颗行星的一天最短——自转最快？',opts:['木星——约 9.9 小时','地球——24 小时','水星——58 天','金星——243 天'],a:0,
    note:'木星 9.9 小时就自转一圈，高速旋转也把它压成了明显的扁球体。'},
+  {q:'木卫一（伊奥）是太阳系什么活动最剧烈的天体？',opts:['火山','地震','风暴','极光'],a:0,
+   note:'木星的潮汐加热让木卫一拥有 400 多座活火山，是太阳系火山活动之最。'},
+  {q:'土星平均密度约 687 kg/m³——这意味着什么？',opts:['它能浮在水上','它内部是空心的','它在持续膨胀','它没有核心'],a:0,
+   note:'土星密度比水还低——若有足够大的海洋，它真的会浮起来。'},
+  {q:'太阳占太阳系总质量的比例约为？',opts:['99.86%','75%','50%','91%'],a:0,
+   note:'太阳独占 99.86%——所有行星、卫星和小行星加起来只是「零头」。'},
+  {q:'月球正在以什么速度远离地球？',opts:['每年约 3.8 厘米','每年约 3.8 米','每年约 38 厘米','它在逐渐靠近'],a:0,
+   note:'激光测距证实：月球每年以约 3.8 厘米的速度悄悄远离我们。'},
+  {q:'冥王星公转一圈 248 年，其中大约多少年会跑到海王星轨道内侧？',opts:['约 20 年','约 100 年','约 5 年','从未'],a:0,
+   note:'1979–1999 年冥王星比海王星更靠近太阳，下一次要等到 2231 年前后。'},
+  {q:'海王星为什么被称为「笔尖上发现的行星」？',opts:['先被数学计算预言，再被望远镜找到','第一张图是用钢笔画的','发现者的姓氏是彭','它的颜色像墨水'],a:0,
+   note:'1846 年勒维耶靠天王星轨道的摄动算出它的位置，柏林天文台一夜之内就找到了它。'},
+  {q:'阳光从太阳到冥王星大约要走多久？',opts:['5 个多小时','8 分钟','约 1 小时','约 2 天'],a:0,
+   note:'冥王星距太阳约 39.5 AU——那里的正午亮度也只相当于地球的黄昏。'},
+  {q:'1976 年「海盗 1 号」在基多尼亚拍到的「人脸」后来被证实是？',opts:['光影错觉下的自然台地','外星文明留下的雕像','远古风滚草的化石','一座普通火山口'],a:0,
+   note:'2001 年更高分辨率的重拍显示那只是一座风蚀台地——科学最动人的地方，是它愿意修正自己。'},
 ];
 let qOrder=[],qIdx=0,qScore=0,qLocked=false;
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
@@ -6703,6 +6759,7 @@ function answerQuiz(btn,item){
 function renderQuizResult(){
   $('q-progress').textContent='测验完成';
   const s=qScore,n=qOrder.length;
+  if(s===n)unlockAchv('polymath');
   const verdict=s===n?`全部正确。`:s>=n-2?`答对 ${s} 题，很扎实。`:s>=Math.ceil(n/2)?`答对 ${s} 题，档案里还有不少细节。`:`答对 ${s} 题——答案都在巡天手记里。`;
   $('quiz-body').innerHTML=`
     <div class="quiz-score">
