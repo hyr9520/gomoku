@@ -3412,6 +3412,7 @@ const PHOTO_TARGETS=[
  {id:'aurora',name:'极光 · 地球夜面',cond:()=>land.id==='earth'&&land.continent==='antarctica'&&Math.cos(land.yaw-1.2)<0.2,hint:'南极冰盖的夜面，等极光爆发转向它',pal:['#0A1A18','#4AC8A0']},
  {id:'darkspot',name:'大暗斑 · 海王星',cond:()=>land.id==='neptune'&&yawNear(land.yaw,2.8,0.45),hint:'转向方位 160° 左右，找到那片深蓝暗涡',pal:['#0A1028','#3A5AC8']},
  {id:'urings',name:'环拱 · 天王星',cond:()=>land.id==='uranus'&&yawNear(land.yaw,2.0,0.45),hint:'转向方位 115° 左右，竖直的环拱会出现在眼前',pal:['#10242A','#8AD8DC']},
+ {id:'starrysky',name:'璀璨星穹 · 地球',cond:()=>land.id==='earth'&&(land.pitch||0)>0.24&&Math.cos(land.yaw-1.2)<-0.05,hint:'在夜面抬头仰望星空（向上拖动），对准银河按下快门',pal:['#04081A','#C8D4F0']},
 ];
 function yawNear(a,b,tol){const d=((a-b)%TAU+TAU)%TAU;return d<tol||d>TAU-tol;}
 function photoGot(){let f={};try{f=JSON.parse(localStorage.getItem('atlas-photos')||'{}')}catch(e){}return f;}
@@ -4826,6 +4827,29 @@ function cycleCam(){
   const b=document.getElementById('land-cam');
   if(b)b.textContent='机位 · '+LAND_CAMS[land.cam].label;
 }
+let skyStarsCv=null;
+function bakeSkyStars(){                        // 地表专属星空：三档星等+彩色亮星+十字光芒（2W 宽供环视滚动）
+  const c=document.createElement('canvas');c.width=W*2;c.height=H;
+  const g=c.getContext('2d');
+  const rnd=mulberry(4242);
+  const N=COARSE?360:640;
+  for(let i=0;i<N;i++){
+    const x=rnd()*W*2,y=rnd()*H*0.62;
+    const tier=rnd();
+    const rr=tier>0.90?1.5:tier>0.68?1.0:0.65;
+    const a=0.35+rnd()*0.55;
+    g.globalAlpha=a;
+    const tint=rnd();
+    g.fillStyle=tint>0.9?'rgb(190,205,255)':tint<0.08?'rgb(255,215,180)':'rgb(232,238,248)';
+    g.beginPath();g.arc(x,y,rr,0,TAU);g.fill();
+    if(tier>0.94&&rnd()>0.55){                 // 亮星十字光芒
+      g.globalAlpha=a*0.35;
+      g.fillRect(x-rr*3.2,y-0.5,rr*6.4,1);g.fillRect(x-0.5,y-rr*3.2,1,rr*6.4);
+    }
+  }
+  g.globalAlpha=1;
+  return c;
+}
 function drawLandEarth(t,drop){
   const cc=CONTINENT_BY_ID[land.continent]||CONTINENTS[0];
   const yaw=land.yaw,sunYaw=1.2;
@@ -4838,7 +4862,8 @@ function drawLandEarth(t,drop){
     if(k>=1)land.camAnim=null;
   }
   const camP=land.camP;
-  const hyPx=H*camP.hy,hhPx=H*camP.hh;
+  const pitchPx=(land.pitch||0)*H*0.55;
+  const hyPx=H*camP.hy+pitchPx,hhPx=H*camP.hh;
   const dayness=Math.cos(yaw-sunYaw);
   const mix=clamp(dayness*0.5+0.5,0,1);
   // 天空：昼蓝 ↔ 夜黑
@@ -4847,27 +4872,32 @@ function drawLandEarth(t,drop){
   // 晚霞带（晨昏附近的地平线橙红）
   if(Math.abs(dayness)<0.45){
     const sk2=clamp(1-Math.abs(dayness)/0.45,0,1);
-    const gg=ctx.createLinearGradient(0,H*0.28,0,H*0.52);
+    const gg=ctx.createLinearGradient(0,hyPx-H*0.24,0,hyPx);
     gg.addColorStop(0,'rgba(255,120,60,0)');
     gg.addColorStop(0.7,'rgba(255,110,56,'+(0.28*sk2).toFixed(2)+')');
     gg.addColorStop(1,'rgba(180,80,90,'+(0.2*sk2).toFixed(2)+')');
-    ctx.fillStyle=gg;ctx.fillRect(0,H*0.28,W,H*0.24);
+    ctx.fillStyle=gg;ctx.fillRect(0,hyPx-H*0.24,W,H*0.24);
   }
-  if(mix<0.55&&fgSpr){
+  if(mix<0.55){                                // 高质量星空：专属烘焙+俯仰视差
+    if(!skyStarsCv)skyStarsCv=bakeSkyStars();
     const ox=Math.round((((yaw*W*0.3)%W)+W)%W);
-    ctx.globalAlpha=clamp(1-mix*1.6,0,0.9);
-    ctx.save();ctx.beginPath();ctx.rect(0,0,W,H*0.3);ctx.clip();
-    for(let k=0;k<4;k++){ctx.drawImage(fgSpr[k],ox-W,-H*0.05);ctx.drawImage(fgSpr[k],ox,-H*0.05);}
-    const ga=clamp(1-mix*1.8,0,1)*0.5;       // 银河带（斜向雾带+亮斑）
+    const sOfs=(land.pitch||0)*W*0.18;
+    const starA=clamp(1-mix*1.6,0,0.95);
+    ctx.save();ctx.beginPath();ctx.rect(0,0,W,Math.max(0,hyPx));ctx.clip();
+    ctx.globalAlpha=starA*(0.82+0.18*Math.sin(t*0.0021));
+    ctx.drawImage(skyStarsCv,ox-W,sOfs-H*0.02);
+    ctx.drawImage(skyStarsCv,ox,sOfs-H*0.02);
+    ctx.globalAlpha=starA;
+    const ga=clamp(1-mix*1.8,0,1)*0.5;       // 银河带（斜向雾带+亮斑，随俯仰）
     if(ga>0.03){
-      ctx.save();ctx.translate(W*0.55,H*0.12);ctx.rotate(-0.32);
+      ctx.save();ctx.translate(W*0.55,H*0.12+sOfs);ctx.rotate(-0.32);
       const gal=ctx.createLinearGradient(0,-70,0,70);
       gal.addColorStop(0,'rgba(150,170,220,0)');
-      gal.addColorStop(0.5,'rgba(170,185,230,'+(0.14*ga).toFixed(2)+')');
+      gal.addColorStop(0.5,'rgba(170,185,230,'+(0.16*ga).toFixed(2)+')');
       gal.addColorStop(1,'rgba(150,170,220,0)');
       ctx.fillStyle=gal;ctx.fillRect(-W,-70,W*2,140);
       const gc2=ctx.createRadialGradient(W*0.2,0,0,W*0.2,0,120);
-      gc2.addColorStop(0,'rgba(220,225,250,'+(0.2*ga).toFixed(2)+')');
+      gc2.addColorStop(0,'rgba(220,225,250,'+(0.22*ga).toFixed(2)+')');
       gc2.addColorStop(1,'rgba(220,225,250,0)');
       ctx.fillStyle=gc2;ctx.beginPath();ctx.arc(W*0.2,0,120,0,TAU);ctx.fill();
       ctx.restore();
@@ -4890,7 +4920,7 @@ function drawLandEarth(t,drop){
   // 太阳（昼面）
   const sx=W/2+((sunYaw-yaw+Math.PI)%(TAU)-Math.PI)*W*0.55;
   if(dayness>0.25&&sx>-80&&sx<W+80){
-    const sy2=H*0.18;
+    const sy2=hyPx-H*0.30;
     const sg=ctx.createRadialGradient(sx,sy2,0,sx,sy2,90);
     sg.addColorStop(0,'rgba(255,244,214,.95)');sg.addColorStop(0.25,'rgba(255,228,170,.5)');sg.addColorStop(1,'rgba(255,228,170,0)');
     ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sx,sy2,90,0,TAU);ctx.fill();
@@ -4906,7 +4936,7 @@ function drawLandEarth(t,drop){
   if(mix>0.4){                                 // 高层卷云（慢速独立层）
     ctx.strokeStyle='rgba(235,242,250,'+(0.16*mix).toFixed(2)+')';
     for(let i=0;i<4;i++){
-      const cy3=H*(0.08+i*0.05);
+      const cy3=hyPx-H*(0.40-i*0.05);
       const cx3=((t*(0.006+i*0.002)+i*700)%(W+400))-200;
       ctx.lineWidth=2+i;
       ctx.beginPath();ctx.moveTo(cx3,cy3);
@@ -4922,17 +4952,17 @@ function drawLandEarth(t,drop){
   const hw=1600*camP.zh,hh2=H*0.3*camP.zh;
   const h2off=Math.round((((yaw*W*0.13)%1600)+1600)%1600);
   ctx.globalAlpha=0.6;
-  ctx.drawImage(land.hills2,-h2off*camP.zh,hhPx-H*0.075*camP.zh,hw,hh2*0.85);
-  ctx.drawImage(land.hills2,hw-h2off*camP.zh,hhPx-H*0.075*camP.zh,hw,hh2*0.85);
+  ctx.drawImage(land.hills2,-h2off*camP.zh,hhPx-H*0.075*camP.zh+pitchPx,hw,hh2*0.85);
+  ctx.drawImage(land.hills2,hw-h2off*camP.zh,hhPx-H*0.075*camP.zh+pitchPx,hw,hh2*0.85);
   ctx.globalAlpha=1;
-  ctx.drawImage(land.hills,-hoff*camP.zh,hhPx+drop,hw,hh2);
-  ctx.drawImage(land.hills,hw-hoff*camP.zh,hhPx+drop,hw,hh2);
+  ctx.drawImage(land.hills,-hoff*camP.zh,hhPx+drop+pitchPx,hw,hh2);
+  ctx.drawImage(land.hills,hw-hoff*camP.zh,hhPx+drop+pitchPx,hw,hh2);
   // 云影（大面积柔影缓慢扫过地表）
   const csx=(((t*0.02)%2400)-300)*1;
   ctx.globalAlpha=0.1;
   ctx.fillStyle='#0A1A12';
-  ctx.beginPath();ctx.ellipse(csx,H*0.62,320,60,0,0,TAU);ctx.fill();
-  ctx.beginPath();ctx.ellipse(((csx+900)%2400)-300,H*0.55,260,48,0,0,TAU);ctx.fill();
+  ctx.beginPath();ctx.ellipse(csx,hyPx+H*0.16,320,60,0,0,TAU);ctx.fill();
+  ctx.beginPath();ctx.ellipse(((csx+900)%2400)-300,hyPx+H*0.09,260,48,0,0,TAU);ctx.fill();
   ctx.globalAlpha=1;
   const gw=1600*camP.zg,gh2=H*0.62*camP.zg;
   ctx.drawImage(land.g1,-off*camP.zg,hyPx+drop,gw,gh2);
@@ -5968,6 +5998,7 @@ canvas.addEventListener('pointermove',e=>{
     }
     land.yaw+=(e.clientX-drag.x)*0.0042;
     land.yawVel=(e.clientX-drag.x)*0.0042;               // 记录角速度供松手惯性
+    if(land.id==='earth')land.pitch=clamp((land.pitch||0)-(e.clientY-drag.y)*0.0028,-0.26,0.42);   // 纵向拖动：抬头看天/低头看地
     drag.x=e.clientX;drag.y=e.clientY;
     return;
   }
