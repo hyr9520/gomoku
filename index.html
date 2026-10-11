@@ -223,6 +223,13 @@
     cursor:pointer;transition:background .2s;
   }
   #land-scan:hover{background:rgba(24,48,40,.9)}
+  #land-map{
+    display:none;position:fixed;top:14px;right:296px;z-index:36;
+    padding:8px 16px;border:1px solid rgba(229,181,103,.5);border-radius:9px;
+    color:#F1DFAE;font-size:12px;letter-spacing:2px;background:rgba(9,13,26,.85);
+    cursor:pointer;transition:background .2s;
+  }
+  #land-map:hover{background:rgba(48,40,24,.9)}
   #land-cam{
     display:none;position:fixed;top:14px;right:110px;z-index:36;
     padding:8px 16px;border:1px solid rgba(229,181,103,.5);border-radius:9px;
@@ -593,7 +600,7 @@
     #land-card{max-width:196px;font-size:10.5px;padding:8px 10px;line-height:1.5;top:58px}
     #land-scan,#land-cam,#land-map,#land-exit{font-size:10px;padding:7px 9px;letter-spacing:1px}
     #land-exit{right:10px}
-    #land-map{right:104px;display:none}
+    #land-map{right:252px}
     #land-cam{right:78px}
     #land-scan{right:180px}
     #toast{max-width:86vw}
@@ -1793,6 +1800,8 @@ function exitLand(){
   stopWind();
   const id=land.id;
   land=null;LAYER=1;scaleFlash=1;scaleLockUntil=performance.now()+900;landLock=performance.now()+1800;
+  const lmb2=document.getElementById('land-map');
+  if(lmb2)lmb2.style.display='none';
   document.body.classList.remove('land-mode');
   const b=BODIES.find(x=>x.id===id);
   if(b){cam.zoom=clamp(112/(bodyR(b)||2),4,26)*1.2;}
@@ -3020,8 +3029,6 @@ function drawLandSun(t){
 /* ═══ 地球着陆模式：globe（3D 地球选点）→ descent（降落过场）→ surface（大洲地表）═══ */
 function drawEarthMode(t,dt,seq){
   if(!land.mode||land.mode==='globe'){
-    const mb=document.getElementById('land-map');
-    if(mb)mb.style.display=land.mapView?'none':'block';
     if(land.mapView)drawEarthMap(t);else drawGlobeMode(t);
   }
   else if(land.mode==='descent'){drawDescent(t);return;}
@@ -4263,6 +4270,8 @@ function drawLand(t,dt){
   const cfg=landCfg(land.id);
   const e=t-land.pt;
   const seq=landSeq(e);
+  const lmb=document.getElementById('land-map');
+  if(lmb)lmb.style.display=(land.id==='earth')?'block':'none';
   ctx.save();
   // 下降遥测 HUD（0-2400ms）
   if(e<2400){
@@ -5145,13 +5154,9 @@ function bakeSkyStars(){                        // 地表专属星空：三档�
 }
 function drawLandEarth(t,drop){
   if(land.mapView){
-    const mb=document.getElementById('land-map');
-    if(mb)mb.style.display='block';
     drawEarthMap(t);
     return;
   }
-  const mb=document.getElementById('land-map');
-  if(mb)mb.style.display='none';
   const cc=CONTINENT_BY_ID[land.continent]||CONTINENTS[0];
   const yaw=land.yaw,sunYaw=1.2;
   if(!land.camP)land.camP={hy:LAND_CAMS[0].hy,hh:LAND_CAMS[0].hh,zg:1.0,zh:1.0};
