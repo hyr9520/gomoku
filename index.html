@@ -1037,7 +1037,13 @@ for(const st of STARS){
 }
 /* ═══ L3 银河系 / L4 本星系群 ═══ */
 const L3U=0.35, L4U=0.05;                 // 世界单位 / 光年
-const HOME_Z={1:null,2:0.34,3:0.03,4:0.0028};
+const HOME_Z={1:null,2:0.34,3:0.03,4:0.0028,5:1.2};
+let EXCUR='';
+const EXSYS={
+  proxima:{label:'比邻星系 · 4.2 光年',color:'#E8734A'},
+  trappist:{label:'TRAPPIST-1 星系 · 12.5 光年',color:'#D85A38'},
+  gl581:{label:'格利泽 581 星系 · 20.4 光年',color:'#E06838'}
+};
 const GDEEP=[
  {id:'sgra',layer:3,name:'人马座 A*',en:'SAGITTARIUS A*',kind:'超大质量黑洞',x:0,y:0,color:'#4A3226',small:1,
   stats:[['质量','约 430 万倍太阳'],['距离银心','0（银心）'],['事件视界','约 2400 万 km']],
@@ -1079,6 +1085,58 @@ const GDEEP=[
   stats:[['范围','约 5.2 亿光年'],['星系数','约 10 万'],['我们流向巨引源','600 km/s']],
   desc:'2014 年定义的超星系团——夏威夷语「噬无际的天堂」。银河系与本星系群，只是它一条「流」边缘的小漩涡：10 万个星系正一起以 600 km/s 的速度，流向 1.5-2.5 亿光年外的巨引源。',
   facts:['拉尼亚凯亚=「天堂」(lani) +「无际」(akea)。','巨引源：一个无法看见的引力中心——它藏在银道面后方。','本星系群、室女团，都是它的花瓣。','「方向标注」：图上位置为示意方向，非真实比例。']},
+ {id:'ex-proxib',layer:5,sys:'proxima',orb:{i:1,p:11.19,ph:0.7},name:'比邻星 b',en:'PROXIMA B',kind:'系外行星 · 宜居带',color:'#B06848',small:1,
+  stats:[['公转周期','11.19 天'],['半径','约 1.07 地球'],['平衡温度','约 -39 °C']],
+  desc:'距太阳最近的恒星宜居带行星——2016 年发现时全球轰动，「突破摄星」计划的目标地。它被潮汐锁定：一面永昼，一面永夜，生命只能存在于晨昏圈附近。',
+  facts:['公转一周仅 11.2 天——那里的一年不到两周。','母星是耀星：耀发可能剥走大气，也可能点亮极光。','以旅行者号的速度前往需 7 万多年。']},
+ {id:'ex-proxid',layer:5,sys:'proxima',orb:{i:0,p:5.12,ph:2.1},name:'比邻星 d',en:'PROXIMA D',kind:'系外行星 · 亚地球',color:'#987050',small:1,
+  stats:[['公转周期','5.12 天'],['半径','约 0.26 地球'],['平衡温度','约 88 °C']],
+  desc:'2022 年确认的亚地球行星——半径只有地球的四分之一，是已知最小的系外行星之一，紧贴母星运行。',
+  facts:['半径约 0.26 地球——比火星还小。','2022 年用视向速度法从噪声中挖出来。','离恒星太近，白昼面可能熔化金属。']},
+ {id:'ex-proxic',layer:5,sys:'proxima',orb:{i:2,p:1825,ph:4.4},name:'比邻星 c',en:'PROXIMA C',kind:'系外行星 · 候选',color:'#7890A8',small:1,
+  stats:[['公转周期','约 5.2 年'],['质量','约 7 地球'],['平衡温度','约 -234 °C']],
+  desc:'一颗遥远的冰冻巨行星「候选」——2020 年的微引力透镜与视向速度信号暗示它存在，但尚未完全确认。',
+  facts:['候选行星：证据仍在积累中。','若确认，轨道比地球到太阳远 7 倍。','可能有巨大的环系——尚未观测证实。']},
+ {id:'ex-trapb',layer:5,sys:'trappist',orb:{i:0,p:1.511,ph:0.3},name:'TRAPPIST-1 b',en:'TRAPPIST-1 B',kind:'系外行星 · 灼热岩石',color:'#C07048',small:1,
+  stats:[['公转周期','1.51 天'],['半径','约 1.12 地球'],['昼面温度','约 230 °C']],
+  desc:'最内侧的行星——被潮汐锁定，永昼面正对母星。2023 年 JWST 测得它的昼面温度高达 230°C，且几乎没有大气。',
+  facts:['JWST 首次为岩质系外行星测昼面温度。','一年只有 36 小时。','在它的天空里，母星比太阳大 10 倍。']},
+ {id:'ex-trapc',layer:5,sys:'trappist',orb:{i:1,p:2.422,ph:1.8},name:'TRAPPIST-1 c',en:'TRAPPIST-1 C',kind:'系外行星 · 灼热岩石',color:'#B87A50',small:1,
+  stats:[['公转周期','2.42 天'],['半径','约 1.10 地球'],['昼面温度','约 150 °C']],
+  desc:'第二颗行星——JWST 测得它的昼面约 150°C，可能保有较厚的二氧化碳大气，是岩质行星大气演化的关键样本。',
+  facts:['与 b 几乎同大小，命运却可能完全不同。','大气若存在，将是岩质行星大气模型的重要校准点。']},
+ {id:'ex-trapd',layer:5,sys:'trappist',orb:{i:2,p:4.049,ph:3.2},name:'TRAPPIST-1 d',en:'TRAPPIST-1 D',kind:'系外行星 · 内宜居带边缘',color:'#D8B888',small:1,
+  stats:[['公转周期','4.05 天'],['半径','约 0.79 地球'],['平衡温度','约 15 °C']],
+  desc:'七颗行星中最小的一颗，恰好贴着宜居带内缘——它可能是这颗恒星系统里最像「早期金星」的世界。',
+  facts:['半径只有 0.79 地球——比金星略小。','若有大海洋，云层可以让它保持宜居。']},
+ {id:'ex-trape',layer:5,sys:'trappist',orb:{i:3,p:6.099,ph:0.9},name:'TRAPPIST-1 e',en:'TRAPPIST-1 E',kind:'系外行星 · 宜居带',color:'#68A8B0',small:1,
+  stats:[['公转周期','6.10 天'],['半径','约 0.92 地球'],['平衡温度','约 -22 °C']],
+  desc:'宜居带正中的明珠——大小与密度都接近地球，可能保有液态水与大气。它是 JWST 后续观测的头号目标，也是这颗红矮星系统里「最像家园」的候选。',
+  facts:['宜居带正中——表面可能存在液态水。','密度与地球相近，可能有铁核与岩石幔。','JWST 正在排队观测它的大气。']},
+ {id:'ex-trapf',layer:5,sys:'trappist',orb:{i:4,p:9.207,ph:2.6},name:'TRAPPIST-1 f',en:'TRAPPIST-1 F',kind:'系外行星 · 宜居带',color:'#78B8C8',small:1,
+  stats:[['公转周期','9.21 天'],['半径','约 1.05 地球'],['平衡温度','约 -44 °C']],
+  desc:'宜居带外侧的冰封世界——若存在温室气体，厚冰之下可能有海洋。它的天空里，六颗姊妹行星会像月亮一样轮番升起。',
+  facts:['七颗行星彼此靠得极近：从 f 上看，b 有满月两倍大。','潮汐锁定让行星永远以同一面朝向母星。']},
+ {id:'ex-trapg',layer:5,sys:'trappist',orb:{i:5,p:12.352,ph:4.1},name:'TRAPPIST-1 g',en:'TRAPPIST-1 G',kind:'系外行星 · 宜居带',color:'#88C8D8',small:1,
+  stats:[['公转周期','12.35 天'],['半径','约 1.13 地球'],['平衡温度','约 -63 °C']],
+  desc:'宜居带外缘的冰雪世界——半径比地球略大。它的存在证明这类超冷红矮星周围可以整齐排下一串类地行星。',
+  facts:['七颗行星的轨道排得比八枚硬币还紧凑。','全部行星的水含量可能高达百分之几——远超地球。']},
+ {id:'ex-traph',layer:5,sys:'trappist',orb:{i:6,p:18.773,ph:5.3},name:'TRAPPIST-1 h',en:'TRAPPIST-1 H',kind:'系外行星 · 冰封',color:'#A8B8C0',small:1,
+  stats:[['公转周期','18.77 天'],['半径','约 0.76 地球'],['平衡温度','约 -100 °C']],
+  desc:'最外侧的冰封小世界——比火星略小。在这个系统里它是「远郊」，却仍比水星到太阳还近。',
+  facts:['最外侧却仍比水星轨道还近。','「旅行者」式的飞掠在这里毫无意义——距离太远，只能是千年之约。']},
+ {id:'ex-gl581e',layer:5,sys:'gl581',orb:{i:0,p:3.15,ph:1.2},name:'格利泽 581 e',en:'GLIESE 581 E',kind:'系外行星 · 灼热',color:'#C08050',small:1,
+  stats:[['公转周期','3.15 天'],['质量','约 1.7 地球'],['平衡温度','约 100 °C+']],
+  desc:'最内侧的热行星——质量只有地球的 1.7 倍，是发现初期最轻的系外行星之一。',
+  facts:['2009 年发现时是最轻的系外行星纪录保持者。','轨道紧贴恒星，一年不到三天。']},
+ {id:'ex-gl581c',layer:5,sys:'gl581',orb:{i:1,p:12.91,ph:3.7},name:'格利泽 581 c',en:'GLIESE 581 C',kind:'系外行星 · 超级地球',color:'#B89058',small:1,
+  stats:[['公转周期','12.9 天'],['质量','约 5.5 地球'],['平衡温度','约 40 °C（争议）']],
+  desc:'2007 年的超级明星——第一颗引发全球热议的「超级地球」。它的发现让「另一个地球」从幻想变成了可测量的科学问题。',
+  facts:['2007 年发现时被称为「最宜居候选」。','后续研究对其环境结论分歧极大。','它的故事证明：系外行星科学在飞速自我修正。']},
+ {id:'ex-gl581d',layer:5,sys:'gl581',orb:{i:2,p:87,ph:5.0},name:'格利泽 581 d',en:'GLIESE 581 D',kind:'系外行星 · 宜居带边缘',color:'#8898B0',small:1,
+  stats:[['公转周期','约 87 天'],['质量','约 7 地球'],['平衡温度','约 -20 °C（若有大 rn 气则更高）']],
+  desc:'宜居带外缘的「大块头」——若拥有浓密大气与海洋，它可能是真的宜居世界。它曾是人类向地外发送信息的第一个超级地球目标。',
+  facts:['2008 年 NASA 曾向它发送「Hello from Earth」无线电讯息。','信号要 20 年才能到达——回音最早 2049 年。']},
 ];
 let galCv=null, GSPR=null;
 function bakeMoonGround(){
@@ -1487,6 +1545,10 @@ function rumble(dur){
 
 /* ═══ L0 着陆模式：登上星球表面 ═══ */
 const LAND_CFG={
+  'ex-proxib':{label:'比邻星 b',spr:'moonrock',
+  zones:[{n:'晨昏圈温带',c:'rgba(200,120,80,.12)'},{n:'永夜冰原边缘',c:'rgba(120,120,150,.12)'},{n:'红壤台地',c:'rgba(160,90,60,.12)'}],dust:'#B06848',sky:{top:'#2A0E08',bot:'#B05830'},sunScale:2.2,ground:{top:'#8A4830',mid:'#5E3020',low:'#301810',bot:'#180C08'},craters:5,rocks:120,veh:'rover',yaws:[0.6,2.2,4.0],task:'采集红壤样本',gcol:'#F0C8A8'},
+  'ex-trappe':{label:'TRAPPIST-1 e',spr:'moonrock',
+  zones:[{n:'向日冰原',c:'rgba(200,220,230,.10)'},{n:'晨昏雨带',c:'rgba(150,190,200,.12)'},{n:'背日冰川',c:'rgba(170,200,215,.10)'}],dust:'#C8D8DC',sky:'space',ground:{top:'#C8D4D4',mid:'#9AAAB0',low:'#5E6E74',bot:'#2E3A40'},craters:3,rocks:80,yaws:[0.55,2.15,3.95],task:'采集冰壳与大气样本',gcol:'#F0F6F6'},
   io:{label:'木卫一',obsName:'目睹一次火山喷发',tex:'mars',spr:'marsrock',
   zones:[{n:'洛基火山口北',c:'rgba(220,180,90,.12)'},{n:'普罗米修斯平原',c:'rgba(240,200,110,.10)'},{n:'硫磺沉积台地',c:'rgba(180,140,60,.14)'}],dust:'#C8A850',sky:{top:'#3A2C10',bot:'#A08040'},sunScale:0.5,ground:{top:'#C8A850',mid:'#A08040',low:'#584018',bot:'#2E2410'},craters:4,rocks:110,veh:'rover',yaws:[0.6,2.2,4.0],task:'采集硫磺样本',gcol:'#F0E0A0'},
   europa:{label:'木卫二',spr:'moonrock',
@@ -1770,7 +1832,7 @@ let land=null, landFx=[];
 function enterLand(id){
   if(land&&land.id===id)return;
   const lc=landCfg(id);
-  land={id,yaw:0.15,born:performance.now(),pt:performance.now(),phase:'descend',touched:false,
+  land={id,fromLayer:LAYER,yaw:0.15,born:performance.now(),pt:performance.now(),phase:'descend',touched:false,
     samples:lc.yaws.map(()=>false),er:false,sunArmed:true,cityArmed:true,g1:null,g2:null,g3:null,dust:[],
     mode:id==='earth'?'globe':'surface',lon0:-100,lat0:18,globeDirty:true,continent:null,lonVel:0,eggSeen:{}};
   if(lc.zones)land.zone=lc.zones[(Math.random()*lc.zones.length)|0];
@@ -1799,7 +1861,9 @@ function exitLand(){
   if(!land)return;
   stopWind();
   const id=land.id;
-  land=null;LAYER=1;scaleFlash=1;scaleLockUntil=performance.now()+900;landLock=performance.now()+1800;
+  const fl=land.fromLayer||1;
+  land=null;LAYER=fl===5?5:1;scaleFlash=1;scaleLockUntil=performance.now()+900;landLock=performance.now()+1800;
+  if(LAYER===5){cam.zoom=2;}else{const b2=BODIES.find(x=>x.id===id);if(b2)cam.zoom=clamp(112/(bodyR(b2)||2),4,26)*1.2;}
   const lmb2=document.getElementById('land-map');
   if(lmb2)lmb2.style.display='none';
   document.body.classList.remove('land-mode');
@@ -5442,11 +5506,71 @@ function drawDeeper(t,dt){
       }
     }
   }
+  if(LAYER===5)drawExSystem(t);
   drawMeteors(t,dt);
   const vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.38,W/2,H/2,Math.max(W,H)*0.8);
   vg.addColorStop(0,'rgba(3,4,12,0)');
   vg.addColorStop(1,'rgba(3,4,12,.5)');
   ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+}
+
+/* ── L5 外星星系视图 ── */
+function exPos(g){                              // 行星轨道位置（确定性：simDays 驱动）
+  const r=46+38*g.orb.i, a=simDays()/g.orb.p*TAU+g.orb.ph;
+  return {x:r*Math.cos(a), y:r*Math.sin(a)*0.62};
+}
+function drawExSystem(t){
+  ctx.fillStyle='#02040A';ctx.fillRect(0,0,W,H);
+  if(fgSpr){
+    const ox=Math.round((((cam.x*0.3)%W)+W)%W);
+    ctx.globalAlpha=0.5;
+    for(let k=0;k<4;k++){ctx.drawImage(fgSpr[k],ox-W,-H*0.05);ctx.drawImage(fgSpr[k],ox,-H*0.05);}
+    ctx.globalAlpha=1;
+  }
+  const cx=W/2+((0-cam.x)*cam.zoom), cy=H/2+((0-cam.y)*cam.zoom);
+  const sys=EXSYS[EXCUR]||{color:'#E8734A'};
+  const star=STARS.find(x2=>x2.id===EXCUR);
+  // 轨道环
+  const planets=GDEEP.filter(g=>g.layer===5&&g.sys===EXCUR);
+  for(const g of planets){
+    const p2=exPos(g), r=Math.hypot(p2.x,p2.y)*cam.zoom;
+    ctx.strokeStyle='rgba(150,170,225,.14)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.ellipse(cx,cy,r,r*0.62,0,0,TAU);ctx.stroke();
+  }
+  // 母星
+  const sR=26*clamp(cam.zoom,0.7,2.4);
+  const sg=ctx.createRadialGradient(cx,cy,0,cx,cy,sR*3.2);
+  sg.addColorStop(0,sys.color);sg.addColorStop(0.4,'rgba(255,190,120,.4)');sg.addColorStop(1,'rgba(255,190,120,0)');
+  ctx.fillStyle=sg;ctx.beginPath();ctx.arc(cx,cy,sR*3.2,0,TAU);ctx.fill();
+  ctx.fillStyle=sys.color;ctx.beginPath();ctx.arc(cx,cy,sR,0,TAU);ctx.fill();
+  ctx.font='12px "Segoe UI","Microsoft YaHei",sans-serif';ctx.textAlign='center';
+  ctx.fillStyle='rgba(243,236,220,.9)';
+  ctx.fillText((star?star.name:EXCUR)+' · '+(star?star.kind:'红矮星'),cx,cy+sR+22);
+  // 行星
+  for(const g of planets){
+    const p2=exPos(g);
+    const px=cx+p2.x*cam.zoom, py=cy+p2.y*cam.zoom;
+    const pr=clamp(9*(g.orb.i===0?0.7:1)*(0.9+0.2*((g.name.charCodeAt(g.name.length-1)%3))),6,14)*clamp(cam.zoom,0.8,2);
+    const pg=ctx.createRadialGradient(px-pr*0.3,py-pr*0.3,pr*0.1,px,py,pr);
+    pg.addColorStop(0,'rgba(255,255,255,.25)');pg.addColorStop(0.3,g.color);pg.addColorStop(1,'rgba(0,0,0,.55)');
+    ctx.fillStyle=pg;ctx.beginPath();ctx.arc(px,py,pr,0,TAU);ctx.fill();
+    const active=(hoverId===g.id||selectedId===g.id);
+    if(showLabel||active){
+      ctx.fillStyle=active?'rgba(241,223,174,.95)':'rgba(170,186,216,.85)';
+      ctx.fillText(g.name,px,py-pr-9);
+    }
+    if(active){
+      ctx.strokeStyle='rgba(229,181,103,.6)';ctx.lineWidth=1.2;
+      ctx.beginPath();ctx.arc(px,py,pr+5,0,TAU);ctx.stroke();
+    }
+  }
+  // HUD
+  ctx.font='12px "Segoe UI","Microsoft YaHei",sans-serif';
+  ctx.fillStyle='rgba(241,223,174,.85)';ctx.textAlign='left';
+  ctx.fillText(EXSYS[EXCUR]?EXSYS[EXCUR].label:'外星星系',14,22);
+  ctx.fillStyle='rgba(147,165,198,.75)';
+  ctx.fillText('滚轮缩放 · 点击行星查看档案 · 缩小返回星际',14,40);
+  ctx.textAlign='center';
 }
 
 /* ── L2 深空层：星际邻域 ── */
@@ -6198,8 +6322,8 @@ function frame(t){
   }
   if(flyAnim){
     // 平滑飞行：InOutCubic，终点动态追踪行星
-    const b=BODIES.find(x=>x.id===flyAnim.id);
-    if(b){const tp=bodyPos(b);flyAnim.tx=tp.x;flyAnim.ty=tp.y;}
+    const b=BODIES.find(x=>x.id===flyAnim.id)||GDEEP.find(x=>x.id===flyAnim.id);
+    if(b){const tp=b.layer===5?(p2=>({x:p2.x,y:p2.y}))(exPos(b)):bodyPos(b);flyAnim.tx=tp.x;flyAnim.ty=tp.y;}
     const k=Math.min((t-flyAnim.t0)/flyAnim.dur,1);
     const e=k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
     cam.x=flyAnim.fx+(flyAnim.tx-flyAnim.fx)*e;
@@ -6216,6 +6340,10 @@ function frame(t){
     inertia.vx*=Math.pow(0.9,dt/16);inertia.vy*=Math.pow(0.9,dt/16);
   }
   // 着陆触发：特写天体继续放大
+  if(LAYER===5&&camTarget&&!land&&!storyActive){
+    const cb2=GDEEP.find(x=>x.id===camTarget&&x.layer===5);
+    if(cb2&&cam.zoom>26*2.1&&performance.now()>landLock)enterLand(cb2.id);
+  }
   if(LAYER===1&&camTarget&&!land&&!storyActive){
     const cb=BODIES.find(x=>x.id===camTarget);
     if(cb&&cb.id!=='halley'){
@@ -6230,7 +6358,9 @@ function frame(t){
   // 分层宇宙：缩得太深/太浅时跨层（白闪过渡）
   if(t>scaleLockUntil){
     if(LAYER===1&&cam.zoom<0.08)setLayer(2,0.55,'星际邻域 · 太阳周围 12 光年');
+    else if(LAYER===2&&cam.zoom>8&&EXSYS[camTarget]){EXCUR=camTarget;setLayer(5,1.2,EXSYS[camTarget].label);}
     else if(LAYER===2&&cam.zoom>8)setLayer(1,fitZoom()*0.5,'太阳系');
+    else if(LAYER===5&&cam.zoom>7&&!flyAnim&&!camTarget)setLayer(2,16,'星际邻域');
     else if(LAYER===2&&cam.zoom<0.02)setLayer(3,0.03,'银河系 · 直径 10 万光年');
     else if(LAYER===3&&cam.zoom>0.5)setLayer(2,0.55,'星际邻域');
     else if(LAYER===3&&cam.zoom<0.0012)setLayer(4,0.0028,'本星系群 · 直径 1000 万光年');
@@ -6517,6 +6647,17 @@ function pick(sx,sy){
     }
     return bid;
   }
+  if(LAYER===5){
+    let bid=null,bd=1e9;
+    for(const g of GDEEP){
+      if(g.layer!==5||g.sys!==EXCUR)continue;
+      const p2=exPos(g);
+      const px=W/2+p2.x*cam.zoom, py=H/2+p2.y*cam.zoom;
+      const d=Math.hypot(sx-px,sy-py);
+      if(d<Math.max(22,9*cam.zoom)&&d<bd){bid=g.id;bd=d;}
+    }
+    return bid;
+  }
   if(LAYER===2){
     let bid=null,bd=1e9;
     for(const st of STARS){
@@ -6659,9 +6800,9 @@ function focusBody(id,opts){
   const b=BODIES.find(x=>x.id===id)||STARS.find(x=>x.id===id)||GDEEP.find(x=>x.id===id)||(VOY&&id==='voyager'?VOY:null);if(!b)return;
   intro=null;zoomAnim=null;flyAnim=null;
   camTarget=id;
-  const isStar=!!b.stats;
+  const isStar=!!b.stats&&b.layer!==5;
   const want=isStar?(LAYER===2?(b.ly?1.9:1.4):LAYER===3?0.09:0.05):clamp(112/(bodyR(b)||2),4,26);
-  const p=isStar?{x:b.x,y:b.y}:bodyPos(b);
+  const p=isStar&&b.layer!==5?{x:b.x,y:b.y}:(b.layer===5?(function(){const e2=exPos(b);return {x:e2.x,y:e2.y};})():bodyPos(b));
   // 平滑飞行：相机缓动飞向目标（终点动态追踪行星公转）
   const dist=Math.hypot(p.x-cam.x,p.y-cam.y)+Math.abs(want-cam.zoom)*30;
   flyAnim={t0:performance.now(),dur:clamp(500+dist*0.35,650,1600),
