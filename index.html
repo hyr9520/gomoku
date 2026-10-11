@@ -852,14 +852,27 @@ const BODIES=[
   desc:'锈红色的荒漠行星，拥有太阳系最高的火山（奥林帕斯山，约 22 km）和最深的峡谷。干涸的河床表明它曾温暖湿润，是人类探测器造访次数最多的行星。',
   facts:['火星的红色来自表面遍布的氧化铁——简单说就是“生锈”。','它有两颗小卫星，火卫一正缓慢向火星坠落。','火星尘暴可以席卷全球，持续数月之久。']},
  {id:'jupiter',name:'木星',en:'JUPITER',kind:'气态巨行星',color:'#C9A279',a:5.203,period:4331,L0:34.40,radius:71492,rotH:9.9,tilt:3.13,temp:-110,moons:95,ring:true,g:23.1,esc:59.5,dens:1326,dr:14,
-  sats:[{d:2.3,p:1.77,r:1.1,c:'#E8D078',n:'木卫一'},{d:2.9,p:3.55,r:1.0,c:'#C8B8A8',n:'木卫二'},{d:3.7,p:7.15,r:1.5,c:'#A89880',n:'木卫三'},{d:4.7,p:16.7,r:1.3,c:'#888070',n:'木卫四'}],
   desc:'太阳系的巨人，质量是其余七大行星总和的 2.5 倍。条纹状的云带与百年来不熄的大红斑风暴构成了它标志性的面孔，95 颗卫星组成一个“微型太阳系”。',
   facts:['木星自转最快——不到 10 小时一圈，把自己甩成了一颗扁球。','大红斑是一场持续了至少 190 年的反气旋风暴，能装下整个地球。','它强大的引力像“清道夫”，替内太阳系挡下大量彗星与小行星。']},
- {id:'saturn',name:'土星',en:'SATURN',kind:'气态巨行星',color:'#E0C99B',a:9.537,period:10747,L0:49.94,radius:60268,rotH:10.7,tilt:26.73,temp:-140,moons:274,ring:true,g:9.0,esc:35.5,dens:687,dr:12,
-  sats:[{d:2.8,p:4.5,r:0.9,c:'#C0BCB4',n:'土卫五'},{d:3.9,p:15.9,r:1.4,c:'#D8A860',n:'土卫六'}],
+  {id:'io',name:'木卫一',en:'IO',kind:'卫星 · 木星',color:'#E0C868',a:0.00282,parent:'jupiter',mR:20,mPeriod:1.769,radius:1821,rotH:42.5,tilt:0,temp:-143,moons:'—',ring:false,g:1.80,esc:2.56,dens:3528,dr:1.7,hidden:true,ov:17.3,
+  desc:'太阳系火山活动最剧烈的天体——400 多座活火山同时喷发。木星的潮汐引力反复揉捏它的内部，把它撕成了一颗永不停歇的熔炉。表面那些黑点，都是正在喷发的火山口。',
+  facts:['拥有 400 多座活火山，是太阳系火山活动之最。','潮汐加热：木星引力每圈把它拉伸挤压一次，摩擦生热。','火山羽流可喷到 500 公里高空——1979 年「旅行者 1 号」拍摄时被意外发现。']},
+ {id:'europa',name:'木卫二',en:'EUROPA',kind:'卫星 · 木星',color:'#D8CCC0',a:0.00449,parent:'jupiter',mR:26,mPeriod:3.551,radius:1561,rotH:85.2,tilt:0,temp:-160,moons:'—',ring:false,g:1.31,esc:2.03,dens:3013,dr:1.5,hidden:true,ov:13.7,
+  desc:'光滑冰壳之下藏着一片全球性的液态海洋——水量可能是地球所有海洋加起来的两倍。纵横交错的棕红色裂纹，是冰壳反复开合留下的伤疤。它是太阳系里寻找生命最有希望的地方之一。',
+  facts:['冰下海洋的水量可能是地球所有液态水的两倍。','冰壳厚仅 15-25 公里，表面裂纹纵横如龟甲。','NASA「欧罗巴快船」2024 年启程，2030 年抵达勘察。']},
+ {id:'ganymede',name:'木卫三',en:'GANYMEDE',kind:'卫星 · 木星',color:'#A09484',a:0.00716,parent:'jupiter',mR:36,mPeriod:7.155,radius:2634,rotH:171.7,tilt:0,temp:-163,moons:'—',ring:false,g:1.43,esc:2.74,dens:1936,dr:2.1,hidden:true,ov:10.9,
+  desc:'太阳系最大的卫星——比水星还大。古老暗区与年轻沟槽亮区拼出一张双色面孔，它是唯一拥有自身磁场的卫星，像一颗藏在木星影子里的小行星。',
+  facts:['直径 5268 km，比水星还大——太阳系卫星之王。','唯一拥有自身磁场的卫星，两极有极光。','ESA「JUICE」探测器计划 2034 年进入它的轨道。']},
+ {id:'callisto',name:'木卫四',en:'CALLISTO',kind:'卫星 · 木星',color:'#807870',a:0.01259,parent:'jupiter',mR:52,mPeriod:16.689,radius:2410,rotH:400.5,tilt:0,temp:-155,moons:'—',ring:false,g:1.24,esc:2.44,dens:1834,dr:1.9,hidden:true,ov:8.2,
+  desc:'太阳系遭撞击最密集的天体——40 亿年的陨坑一层叠一层，早已饱和。它远离木星的强辐射带，地质死寂却因此保存了最完整的远古记录，被视为未来人类基地的候选地。',
+  facts:['陨坑密度饱和——40 亿年撞击史一层叠一层。','远离木星辐射带，是建立载人基地的候选地。','「旅行者」「伽利略」号多次飞掠测绘全貌。']},
+  {id:'saturn',name:'土星',en:'SATURN',kind:'气态巨行星',color:'#E0C99B',a:9.537,period:10747,L0:49.94,radius:60268,rotH:10.7,tilt:26.73,temp:-140,moons:274,ring:true,g:9.0,esc:35.5,dens:687,dr:12,
   desc:'戴着光环的优雅巨人。主环宽达 28 万公里、厚度却只有几十米，主要由无数冰粒构成。它的平均密度比水还低——若有足够大的海洋，土星会浮起来。',
   facts:['土星已确认 274 颗卫星，是太阳系的“卫星之王”（2025 年新确认 128 颗）。','北极有一个稳定的六边形风暴，每条边比地球直径还长。','环系非常年轻：可能比恐龙还晚出现，并在缓慢“下雨”消失。']},
- {id:'uranus',name:'天王星',en:'URANUS',kind:'冰质巨行星',color:'#9CD3D8',a:19.19,period:30689,L0:313.23,radius:25559,rotH:-17.2,tilt:97.77,temp:-195,moons:28,ring:true,g:8.7,esc:21.3,dens:1270,dr:8.2,
+  {id:'titan',name:'土卫六',en:'TITAN',kind:'卫星 · 土星',color:'#D0A058',a:0.00817,parent:'saturn',mR:32,mPeriod:15.945,radius:2575,rotH:382.7,tilt:0.3,temp:-179,moons:'—',ring:false,g:1.35,esc:2.64,dens:1881,dr:2.0,hidden:true,ov:5.6,
+  desc:'唯一拥有浓密大气层的卫星——气压是地球的 1.5 倍，橙色雾霾终年不散。零下 179°C 的表面上下着液态甲烷的雨，汇成烃湖与烃海。2005 年「惠更斯」号在此着陆——迄今人类登陆过的最远世界。',
+  facts:['大气密度 1.5 倍地球气压——不穿增压服也能站着。','湖泊海洋全是液态甲烷-乙烷，构成一套「甲烷循环」。','2005 年「惠更斯」号着陆——人类登陆过的最远天体。']},
+  {id:'uranus',name:'天王星',en:'URANUS',kind:'冰质巨行星',color:'#9CD3D8',a:19.19,period:30689,L0:313.23,radius:25559,rotH:-17.2,tilt:97.77,temp:-195,moons:28,ring:true,g:8.7,esc:21.3,dens:1270,dr:8.2,
   desc:'“躺着”公转的冰巨星——自转轴倾斜 98°，两极轮流迎着太阳，每一极都有长达 42 年的白昼与黑夜。大气中的甲烷吸收红光，让它呈现安静的青色。',
   facts:['天王星是唯一“侧躺着滚”的行星，可能源于远古的一次巨大撞击。','它是太阳系最冷的行星，最低温约 -224°C，比更远的海王星还冷。','1781 年被发现，是第一颗用望远镜发现的行星。']},
  {id:'neptune',name:'海王星',en:'NEPTUNE',kind:'冰质巨行星',color:'#4C6FD1',a:30.07,period:59800,L0:304.88,radius:24766,rotH:16.1,tilt:28.32,temp:-200,moons:16,ring:true,g:11.0,esc:23.5,dens:1638,dr:7.9,
@@ -1432,6 +1445,16 @@ function rumble(dur){
 
 /* ═══ L0 着陆模式：登上星球表面 ═══ */
 const LAND_CFG={
+  io:{label:'木卫一',tex:'mars',spr:'marsrock',
+  zones:[{n:'洛基火山口北',c:'rgba(220,180,90,.12)'},{n:'普罗米修斯平原',c:'rgba(240,200,110,.10)'},{n:'硫磺沉积台地',c:'rgba(180,140,60,.14)'}],dust:'#C8A850',sky:{top:'#3A2C10',bot:'#A08040'},sunScale:0.5,ground:{top:'#C8A850',mid:'#A08040',low:'#584018',bot:'#2E2410'},craters:4,rocks:110,veh:'rover',yaws:[0.6,2.2,4.0],task:'采集硫磺样本',gcol:'#F0E0A0'},
+  europa:{label:'木卫二',spr:'moonrock',
+  zones:[{n:'混沌线条区',c:'rgba(200,210,215,.10)'},{n:'普维尔裂纹',c:'rgba(190,205,210,.12)'},{n:'极地冰脊',c:'rgba(170,190,200,.10)'}],dust:'#C8D0D2',sky:'space',ground:{top:'#D8D8D0',mid:'#B8BCB8',low:'#889095',bot:'#4A5058'},craters:2,rocks:60,yaws:[0.55,2.1,3.9],task:'采集冰壳样本',gcol:'#F0F4F6'},
+  ganymede:{label:'木卫三',spr:'moonrock',
+  zones:[{n:'伽利略区暗地形',c:'rgba(140,130,120,.12)'},{n:'乌鲁克沟槽',c:'rgba(160,150,138,.10)'},{n:'极冠边界',c:'rgba(180,175,165,.10)'}],dust:'#8A8278',sky:'space',ground:{top:'#8A8074',mid:'#6A625A',low:'#3E3A34',bot:'#22201C'},craters:7,rocks:90,yaws:[0.65,2.25,4.05],task:'采集风化层样本',gcol:'#E8E0D4'},
+  callisto:{label:'木卫四',spr:'moonrock',
+  zones:[{n:'瓦尔哈拉盆地外缘',c:'rgba(110,100,92,.12)'},{n:'阿斯加德山脉',c:'rgba(96,88,80,.12)'},{n:'萨加裂谷',c:'rgba(84,76,70,.10)'}],dust:'#6A625A',sky:'space',ground:{top:'#6A6058',mid:'#524A44',low:'#2E2A26',bot:'#181614'},craters:9,rocks:100,yaws:[0.6,2.2,4.1],task:'采集原始冰样本',gcol:'#D8D2C8'},
+  titan:{label:'土卫六',spr:'marsrock',
+  zones:[{n:'惠更斯着陆平原',c:'rgba(220,160,80,.12)'},{n:'克拉肯烃海东岸',c:'rgba(200,140,60,.12)'},{n:'香格里拉暗丘',c:'rgba(180,120,50,.10)'}],dust:'#C89048',fog:0.32,sky:{top:'#8A5A20',bot:'#D09048'},sunScale:0.4,ground:{top:'#C89048',mid:'#A87038',low:'#583818',bot:'#2A1A0C'},craters:1,rocks:70,veh:'rover',yaws:[0.6,2.2,4.0],task:'采集烃湖蒸发样',gcol:'#F5E0B8'},
   moon:{label:'月球',obsName:'观测一次流星雨',tex:'moon',spr:'moonrock',
   zones:[{n:'静海东',c:'rgba(205,212,228,.13)'},{n:'风暴洋西脊',c:'rgba(148,138,158,.17)'},{n:'第谷环形山北',c:'rgba(235,228,210,.1)'}],dust:'#B0ACA0',sky:'space',ground:{top:'#7E7C74',mid:'#96948A',low:'#6E6C66',bot:'#3E3D38'},craters:9,rocks:130,yaws:[0.35,1.9,3.6],task:'采集岩石样本',gcol:'#F1DFAE'},
   earth:{label:'地球',dust:'#7A6E56',special:'earth',yaws:[4.4],auto:true,tasks:['观看一次日出','找到城市灯火','采集植物样本'],task:'采集植物样本',gcol:'#BFE8C0'},
@@ -1556,6 +1579,10 @@ const EGGS=[
   desc:'1989 年旅行者 2 号飞掠时拍下的椭圆形风暴，内里风速超过每小时 2100 公里。几年后哈勃再看，它已经消失——海王星的风暴来得猛烈，散得也干脆，像这颗行星一贯的脾气。'},
  {id:'urings',planet:'uranus',yaw:2.0,draw:'urings',name:'天王星环拱',
   desc:'1977 年 3 月 10 日，天王星掩一颗恒星的观测中，光度计读数突然抖动了五次——天文学家由此发现了环绕它的暗环。因为整颗行星躺着自转（轴倾角 97.8°），从云顶望去，这些环不是横在天上，而是一座几乎竖直的拱门。'},
+ {id:'hilary',cont:'everest',yaw:2.2,draw:'peak',name:'希拉里台阶',
+  desc:'1953 年 5 月 29 日，埃德蒙·希拉里与丹增·诺尔盖沿这段仅 12 米高的岩脊登上珠穆朗玛之巅——台阶以希拉里命名，是登顶前的最后一道门。2015 年尼泊尔地震改变了它的形状；如今每年数百人抓着同一条固定绳挤过这里。海拔约 8790 米的这几级岩石，是人类攀登史上最著名的一段路。'},
+ {id:'mirror',cont:'uyuni',yaw:3.4,draw:'mirror',name:'天空之镜',
+  desc:'乌尤尼盐沼面积超过一万平方公里——世界上最大的盐滩。每年雨季，薄薄一层积水把整个天空完整地倒映在地面上，天地边界就此消失。盐壳之下还沉睡着全球最大的锂储量之一：这片白色沙漠，正照亮着电动汽车时代的电池。'},
  {id:'cydonia',planet:'mars',yaw:4.9,draw:'mesa',name:'基多尼亚台地',
   desc:'1976 年「海盗 1 号」在这片台地拍到一张著名的「人脸」——低分辨率下，阴影与轮廓恰好拼出了眼与鼻的错觉。2001 年火星全球勘测者以更高分辨率重拍：只是一座被风蚀出棱线的普通台地。这张「脸」成了行星科学最著名的一堂课——我们想看见的东西，未必真的在那里。'}
 ];
@@ -3495,6 +3522,15 @@ function eggThumbURI(eg){                      // 日志缩略图：sprite 直�
     g9.fillStyle='rgba(196,120,70,.8)';g9.beginPath();g9.moveTo(28,58);g9.lineTo(38,32);g9.lineTo(64,28);g9.lineTo(88,42);g9.lineTo(92,58);g9.closePath();g9.fill();
     g9.strokeStyle='rgba(120,60,30,.9)';g9.lineWidth=1.6;g9.beginPath();g9.moveTo(28,58);g9.lineTo(38,32);g9.lineTo(64,28);g9.lineTo(88,42);g9.lineTo(92,58);g9.stroke();
     g9.fillStyle='rgba(255,205,160,.45)';g9.beginPath();g9.moveTo(38,32);g9.lineTo(64,28);g9.lineTo(58,40);g9.closePath();g9.fill();
+  }else if(eg.draw==='peak'){
+    g9.fillStyle='rgba(228,234,240,.9)';g9.beginPath();g9.moveTo(30,58);g9.lineTo(52,26);g9.lineTo(66,36);g9.lineTo(88,58);g9.closePath();g9.fill();
+    g9.fillStyle='rgba(120,128,140,.8)';g9.beginPath();g9.moveTo(52,26);g9.lineTo(66,36);g9.lineTo(58,42);g9.closePath();g9.fill();
+    g9.strokeStyle='rgba(90,110,130,.7)';g9.lineWidth=1.4;g9.beginPath();g9.moveTo(30,58);g9.lineTo(52,26);g9.lineTo(88,58);g9.stroke();
+  }else if(eg.draw==='mirror'){
+    const mg3=g9.createLinearGradient(0,30,0,56);
+    mg3.addColorStop(0,'rgba(228,240,250,.6)');mg3.addColorStop(1,'rgba(228,240,250,.15)');
+    g9.fillStyle=mg3;g9.beginPath();g9.ellipse(60,46,44,12,0,0,TAU);g9.fill();
+    g9.strokeStyle='rgba(255,255,255,.5)';g9.lineWidth=1.3;g9.beginPath();g9.ellipse(60,46,44,12,0,0,TAU);g9.stroke();
   }else if(eg.draw==='beacon'){
     g9.strokeStyle='rgba(140,235,190,.9)';g9.lineWidth=1.6;
     g9.beginPath();g9.moveTo(52,60);g9.lineTo(57,22);g9.lineTo(63,22);g9.lineTo(68,60);g9.closePath();g9.stroke();
@@ -3626,7 +3662,7 @@ function cycleScan(){
   try{tone(1180,0.09,'sine',0.04);tone(880,0.14,'sine',0.04,0.09);}catch(e){}
   if(hits===0&&!land.rvR)toast('扫描完成：附近没有新信号');
 }
-const LG_STEPS=()=>COARSE?['拖动画面环视星球','点【扫描】发现信号','点击菱形标记采集样本','点【机位】切换视角']:['拖动画面环视星球','按空格扫描发现信号','点击菱形标记采集样本','按 E 切换机位观察'];
+const LG_STEPS=()=>COARSE?['拖动环视星球（上下拖可抬头看天）','点【扫描】发现信号','点击菱形标记采集样本','点【机位】切换视角']:['拖动环视星球（上下拖可抬头看天）','按空格扫描发现信号','点击菱形标记采集样本','按 E 切换机位观察'];
 function showGuideStep(i){
   const el=document.getElementById('land-guide');if(!el)return;
   el.textContent=LG_STEPS()[i];
@@ -3812,6 +3848,29 @@ function drawLandEggs(t,cc){                   // 地表奇观彩蛋（earth 按
       ctx.beginPath();ctx.moveTo(-H*0.075,-H*0.075);ctx.lineTo(H*0.03,-H*0.09);ctx.lineTo(-H*0.005,-H*0.038);ctx.closePath();ctx.fill();
       ctx.strokeStyle='rgba(110,55,28,.85)';ctx.lineWidth=2;
       ctx.beginPath();ctx.moveTo(-H*0.14,2);ctx.lineTo(-H*0.075,-H*0.075);ctx.lineTo(H*0.03,-H*0.09);ctx.lineTo(H*0.115,-H*0.045);ctx.lineTo(H*0.15,2);ctx.stroke();
+      ctx.restore();
+    }else if(eg.draw==='peak'){                // 希拉里台阶：雪峰岩脊
+      const gy2=hyP+H*0.13;
+      ctx.save();ctx.translate(sx,gy2);
+      ctx.fillStyle='rgba(0,0,0,.2)';
+      ctx.beginPath();ctx.ellipse(0,3,H*0.12,H*0.014,0,0,TAU);ctx.fill();
+      ctx.fillStyle='rgba(228,234,240,.94)';
+      ctx.beginPath();ctx.moveTo(-H*0.11,2);ctx.lineTo(-H*0.02,-H*0.10);ctx.lineTo(H*0.05,-H*0.06);ctx.lineTo(H*0.12,2);ctx.closePath();ctx.fill();
+      ctx.fillStyle='rgba(120,128,140,.85)';
+      ctx.beginPath();ctx.moveTo(-H*0.02,-H*0.10);ctx.lineTo(H*0.05,-H*0.06);ctx.lineTo(H*0.015,-H*0.02);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='rgba(90,110,130,.7)';ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.moveTo(-H*0.11,2);ctx.lineTo(-H*0.02,-H*0.10);ctx.lineTo(H*0.12,2);ctx.stroke();
+      ctx.restore();
+    }else if(eg.draw==='mirror'){              // 天空之镜：镜面反光带
+      const gy2=hyP+H*0.16;
+      ctx.save();ctx.translate(sx,gy2);
+      const mg2=ctx.createLinearGradient(0,-H*0.02,0,H*0.09);
+      mg2.addColorStop(0,'rgba(228,240,250,.55)');
+      mg2.addColorStop(1,'rgba(228,240,250,.10)');
+      ctx.fillStyle=mg2;
+      ctx.beginPath();ctx.ellipse(0,H*0.035,W*0.17,H*0.05,0,0,TAU);ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.45)';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.ellipse(0,H*0.035,W*0.17,H*0.05,0,0,TAU);ctx.stroke();
       ctx.restore();
     }else{
       if(!SPR_READY[eg.spr])continue;
@@ -5711,11 +5770,13 @@ function drawSmallMoons(b,s,r){
 }
 
 function drawComet(b,s,r,rAU,t){
-  // 彗尾：反日向，越近越长
+  // 彗尾：反日向；活动度=日距函数（>3.4AU 无尾，<0.9AU 增强）
   const dir=Math.atan2(s.y-H/2,s.x-viewCX());
-  const len=clamp(150/Math.sqrt(Math.max(rAU,0.3)),14,130)*clamp(cam.zoom,1,4);
+  const act=clamp((3.4-rAU)/2.6,0,1)*(rAU<0.9?1.15:1);
+  const len=clamp(150/Math.sqrt(Math.max(rAU,0.3)),14,130)*clamp(cam.zoom,1,4)*act;
   ctx.save();
   ctx.translate(s.x,s.y);ctx.rotate(dir);
+  if(act<0.04){ctx.restore();return;}      // 远日：冰核休眠，无尾
   // 尘埃尾（宽、微弯、暖白）
   const dg=ctx.createLinearGradient(0,0,len*1.15,0);
   dg.addColorStop(0,'rgba(240,230,200,.5)');
@@ -5743,7 +5804,7 @@ function drawComet(b,s,r,rAU,t){
   ctx.closePath();ctx.fill();
   ctx.restore();
   // 彗发 + 彗核：彗核只有几公里，视觉上保持"小亮核 + 光晕"
-  const coma=clamp(r*1.6,7,44);
+  const coma=clamp(r*1.6,7,44)*clamp(0.45+act*0.55,0.45,1);
   const cg=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,coma);
   cg.addColorStop(0,'rgba(225,242,250,.9)');
   cg.addColorStop(0.35,'rgba(168,216,232,.4)');
@@ -6347,7 +6408,7 @@ function openDossier(id){
     ['自转周期',Math.abs(b.rotH)>=48?(Math.abs(b.rotH)/24).toFixed(1)+' 天'+(b.rotH<0?'（逆行）':''):Math.abs(b.rotH)+' 小时'+(b.rotH<0?'（逆行）':''),''],
     ['轨道半长轴',b.id==='sun'?'—':b.a+' AU',''],
     ['轨道偏心率',b.id==='sun'?'—':(ECC[b.id]!==undefined?ECC[b.id]:b.ecc!==undefined?b.ecc.toFixed(4):'—'),''],
-    ['平均轨道速度',b.id==='sun'?'—':orbVel(b.a),''],
+    ['平均轨道速度',b.id==='sun'?'—':(b.ov?b.ov.toFixed(1)+' km/s':orbVel(b.a)),''],
     ['阳光到达时间',b.id==='sun'?'—':b.a?(b.a*8.317<60?Math.round(b.a*8.317)+' 光分':(b.a*8.317/60).toFixed(1)+' 光时'):'—',''],
     ['平均温度',b.temp+' °C',''],
     ['卫星数',b.moons,''],
@@ -6616,7 +6677,7 @@ $('tg-scale').onclick=()=>{
   realScale=!realScale;
   $('tg-scale').classList.toggle('on',realScale);
   belt=makeBelt();kuiper=makeKuiper();rebakeBands();
-  toast(realScale?'真实比例：1 AU = 56 px':'艺术比例');
+  toast(realScale?'真实比例：1 AU = 56 px——行星已缩小到真实尺寸，滚轮深挖内太阳系':'艺术比例');
 };
 $('btn-about').onclick=()=>$('about-modal').classList.add('open');
 document.querySelectorAll('[data-close]').forEach(b=>{
@@ -6750,6 +6811,10 @@ const NOTES=[
   '土卫二的南极会向太空喷出冰羽——卡西尼号曾从羽流中穿过，直接"尝"到了地下海的咸味。',
   '木星环薄到几乎透明：1979 年旅行者 1 号恰好在逆光角度回望，它才第一次被人类看见。',
   '基多尼亚的「人脸」最终被证明是光影错觉——科学最动人的地方，是它愿意承认并修正错误。',
+  '木卫三比水星还大——它是太阳系最大的卫星，也是唯一有自己磁场的卫星。',
+  '木卫二冰壳下的海洋水量可能是地球所有海洋加起来的两倍——寻找生命的头号目标。',
+  '土卫六的湖泊里装的是液态甲烷——零下 179°C 的一整套「甲烷循环」。',
+  '1610 年伽利略用自制的 20 倍望远镜发现四颗木卫——为日心说提供了关键证据。',
 ];
 let noteIdx=Math.floor(Math.random()*NOTES.length);
 let noteFadeTimer=null;
@@ -6827,6 +6892,14 @@ const QUIZ=[
    note:'冥王星距太阳约 39.5 AU——那里的正午亮度也只相当于地球的黄昏。'},
   {q:'1976 年「海盗 1 号」在基多尼亚拍到的「人脸」后来被证实是？',opts:['光影错觉下的自然台地','外星文明留下的雕像','远古风滚草的化石','一座普通火山口'],a:0,
    note:'2001 年更高分辨率的重拍显示那只是一座风蚀台地——科学最动人的地方，是它愿意修正自己。'},
+  {q:'太阳系最大的卫星是？',opts:['木卫三——比水星还大','土卫六','月球','木卫四'],a:0,
+   note:'木卫三直径 5268 km，比水星还大，也是唯一拥有自身磁场的卫星。'},
+  {q:'哪颗卫星的冰壳之下被认为藏着全球性液态海洋？',opts:['木卫二——欧罗巴','月球','火卫一','冥卫一'],a:0,
+   note:'木卫二冰下海洋的水量可能是地球所有海洋的两倍——「欧罗巴快船」正飞往勘察。'},
+  {q:'人类迄今登陆过的最远天体是？',opts:['土卫六——惠更斯号 2005 年着陆','月球','火星','小行星贝努'],a:0,
+   note:'2005 年「惠更斯」号降落在土卫六——那里下着液态甲烷的雨。'},
+  {q:'珠峰「希拉里台阶」的名字纪念谁？',opts:['首次登顶的埃德蒙·希拉里','发现珠峰的测绘官','一位夏尔巴向导','尼泊尔国王'],a:0,
+   note:'1953 年希拉里与丹增·诺尔盖经这段岩脊首登珠峰——它是登顶前的最后一道门。'},
 ];
 let qOrder=[],qIdx=0,qScore=0,qLocked=false;
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
