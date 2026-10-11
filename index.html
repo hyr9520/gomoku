@@ -763,6 +763,14 @@
       <div style="font-size:12px;color:var(--gold);letter-spacing:2px;margin-bottom:7px">行星动态</div>
       <div id="sky-dyn" style="font-size:12.5px;line-height:1.9"></div>
     </div>
+    <div style="margin-top:14px">
+      <div style="font-size:12px;letter-spacing:2px;color:var(--gold);margin-bottom:7px">未来事件 · 时间机器直达</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button id="fut-halley" style="text-align:left;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.03);color:var(--ink);font-size:12.5px;cursor:pointer">彗星猎人 · 哈雷彗星回归（2061 年）</button>
+        <button id="fut-sedna" style="text-align:left;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.03);color:var(--ink);font-size:12.5px;cursor:pointer">两万年之约 · 塞德娜近日点（2076 年）</button>
+        <button id="fut-2100" style="text-align:left;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.03);color:var(--ink);font-size:12.5px;cursor:pointer">世纪之桥 · 2100 年元旦</button>
+      </div>
+    </div>
     <p style="color:var(--dim);font-size:11px;margin-top:9px;line-height:1.7">基于匀速圆轨道近似实时计算；月相采用朔望月 29.53 天周期。把时间流速调快，这些数字会真实地随之变化。</p>
   </div>
 </div>
@@ -1477,6 +1485,8 @@ const ACHV=[
  ['beaconmaster','先行者之证','集齐全部六段先驱者留言'],
  ['io-shadow','凌影见证者','目睹一次木星卫星凌影'],
  ['exarchivist','星系开拓者','进入全部三个外星星系'],
+ ['warpdriven','跃迁领航员','第一次启动巡天号的跃迁引擎'],
+ ['halley2061','彗星猎人','见证哈雷彗星 2061 年回归'],
  ['polymath','博学者','单轮测验全部答对'],
 ];
 function achvGet(){try{return JSON.parse(localStorage.getItem('atlas-achv')||'{}')}catch(e){return{}}}
@@ -5575,7 +5585,32 @@ function drawExSystem(t){
 }
 
 /* ── L2 深空层：星际邻域 ── */
-let scanPulse=null, frb=null, nextFRB=0;
+let scanPulse=null, frb=null, nextFRB=0, warpFx=null;
+function warpTo(st){                            // 跃迁引擎：飞向目标恒星
+  warpFx={t0:performance.now(),dur:1500};
+  camTarget=null;
+  zoomAnim={f:cam.zoom,to:4,t0:performance.now(),dur:1500,ax:W/2,ay:H/2,wx:st.x,wy:st.y};
+  const yr=Math.max(1,Math.round(st.ly*10));
+  toast('跃迁引擎点火——巡天号以 0.2c 航行 '+st.ly+' 光年（船载时钟 '+yr+' 年）');
+  unlockAchv('warpdriven');
+  try{tone(196,0.5,'sine',0.05);tone(392,0.6,'sine',0.04,0.3);tone(784,0.7,'sine',0.04,0.7);}catch(e){}
+}
+function warpTarget(){                          // 跃迁目标：扫描定位的信号源优先，否则最近未探索
+  const v=exVis();
+  let target=null;
+  for(const k in EXSYS){
+    if(v[k])continue;
+    const st=STARS.find(x2=>x2.id===k);
+    if(st&&(!target||st.ly<target.ly))target=st;
+  }
+  if(!target){
+    for(const k in EXSYS){
+      const st=STARS.find(x2=>x2.id===k);
+      if(st&&(!target||st.ly<target.ly))target=st;
+    }
+  }
+  return target;
+}
 function exVis(){try{return JSON.parse(localStorage.getItem('atlas-exsys')||'{}')}catch(e){return{}}}
 function markExVisited(id){
   let v=exVis();
@@ -5806,6 +5841,24 @@ function draw(t,dt){
       }
     } else frb=null;
   }
+  // 跃迁曲速条纹（径向速度线）
+  if(warpFx){
+    const wk=(t-warpFx.t0)/warpFx.dur;
+    if(wk>=1)warpFx=null;
+    else{
+      const fk=Math.sin(Math.PI*wk);
+      ctx.save();ctx.translate(W/2,H/2);
+      for(let i=0;i<42;i++){
+        const an=(i*0.149+t*0.0006)%TAU;
+        const r0=Math.min(W,H)*(0.10+((i*61+t*0.25)%60)/60*0.42);
+        const r1=r0+60+fk*220;
+        ctx.strokeStyle='rgba(200,220,255,'+(0.32*fk).toFixed(2)+')';
+        ctx.lineWidth=1.6;
+        ctx.beginPath();ctx.moveTo(Math.cos(an)*r0,Math.sin(an)*r0);ctx.lineTo(Math.cos(an)*r1,Math.sin(an)*r1);ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
   // 遥测 HUD：探索度+最近恒星
   {
     const v=exVis(), vn=Object.keys(v).length;
@@ -5814,7 +5867,7 @@ function draw(t,dt){
     ctx.font='11px "Segoe UI","Microsoft YaHei",sans-serif';
     ctx.textAlign='left';
     ctx.fillStyle='rgba(241,223,174,.7)';
-    ctx.fillText('外星星系探索 '+vn+'/3 · 最近恒星 '+near.name+'（'+near.ly+' 光年）· X 深空扫描',14,22);
+    ctx.fillText('外星星系探索 '+vn+'/3 · 最近恒星 '+near.name+'（'+near.ly+' 光年）· X 深空扫描 · N 跃迁',14,22);
     ctx.textAlign='center';
   }
   // 小行星带（整层位图，随相机变换）
@@ -6427,6 +6480,9 @@ function frame(t){
     inertia.vx*=Math.pow(0.9,dt/16);inertia.vy*=Math.pow(0.9,dt/16);
   }
   // 着陆触发：特写天体继续放大
+  if(LAYER===1&&!storyActive&&simTime>Date.UTC(2061,0,20)&&simTime<Date.UTC(2062,2,1)){
+    if(!achvGet().halley2061){unlockAchv('halley2061');toast('彗星猎人：哈雷彗星正在回归——放大并聚焦它，看它点亮内太阳系');}
+  }
   if(LAYER===5&&camTarget&&!land&&!storyActive){
     const cb2=GDEEP.find(x=>x.id===camTarget&&x.layer===5);
     if(cb2&&cam.zoom>26*2.1&&performance.now()>landLock)enterLand(cb2.id);
@@ -6997,6 +7053,21 @@ function renderSky(){
   $('sky-dyn').innerHTML=dyn.length?dyn.join('<br>'):'<span style="color:var(--dim)">今日无逆行或 8° 内行星相合</span>';
 }
 $('btn-sky').onclick=()=>{renderSky();$('sky-modal').classList.add('open');};
+document.getElementById('fut-halley').onclick=()=>{
+  simTime=J2000+(HALLEY_PERI+27510)*864e5;
+  toast('时间机器：2061 年——哈雷彗星正在回归，去太阳系内侧找到它');
+  document.getElementById('sky-modal').classList.remove('open');
+};
+document.getElementById('fut-sedna').onclick=()=>{
+  simTime=J2000+(27912-200)*864e5;
+  toast('时间机器：2076 年——塞德娜抵达近日点，两万年里离太阳最近的时刻');
+  document.getElementById('sky-modal').classList.remove('open');
+};
+document.getElementById('fut-2100').onclick=()=>{
+  simTime=Date.UTC(2100,0,1);
+  toast('时间机器：2100 年元旦——世纪之桥已跨越');
+  document.getElementById('sky-modal').classList.remove('open');
+};
 
 /* ── 年份穿越 ── */
 $('btn-year').onclick=()=>{
@@ -7168,6 +7239,11 @@ window.addEventListener('keydown',e=>{
   }
   if((e.key==='e'||e.key==='E')&&LAYER===0&&land&&land.mode==='surface'){cycleCam();return;}
   if((e.key==='x'||e.key==='X')&&LAYER===2&&!land){deepScan();return;}
+  if((e.key==='n'||e.key==='N')&&LAYER===2&&!land){
+    const tg2=warpTarget();
+    if(tg2)warpTo(tg2);else toast('跃迁引擎无目标——先用 X 深空扫描');
+    return;
+  }
   if((e.key==='x'||e.key==='X')&&LAYER===0&&land&&land.id==='earth'&&(land.mode==='globe'||land.mode==='surface')){
     land.mapView=!land.mapView;
     if(land.mapView){
