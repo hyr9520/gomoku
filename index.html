@@ -167,7 +167,8 @@
     opacity:0;transform:translateY(-8px);
     transition:opacity .7s,transform .7s;
   }
-  body.land-settled #land-card{opacity:1;transform:none}
+  body.land-settled #land-card{opacity:1;transform:none;animation:lcpulse 0.9s ease 0.4s 2}
+  @keyframes lcpulse{0%,100%{box-shadow:0 8px 30px rgba(3,4,12,.6)}45%{box-shadow:0 10px 36px rgba(229,181,103,.55)}}
   #land-title{color:var(--gold);letter-spacing:2px;font-size:13px;margin-bottom:8px}
   #land-brief{
     font-size:11.5px;color:#9FB0CC;line-height:1.75;
@@ -1477,7 +1478,7 @@ function rumble(dur){
 
 /* ═══ L0 着陆模式：登上星球表面 ═══ */
 const LAND_CFG={
-  io:{label:'木卫一',tex:'mars',spr:'marsrock',
+  io:{label:'木卫一',obsName:'目睹一次火山喷发',tex:'mars',spr:'marsrock',
   zones:[{n:'洛基火山口北',c:'rgba(220,180,90,.12)'},{n:'普罗米修斯平原',c:'rgba(240,200,110,.10)'},{n:'硫磺沉积台地',c:'rgba(180,140,60,.14)'}],dust:'#C8A850',sky:{top:'#3A2C10',bot:'#A08040'},sunScale:0.5,ground:{top:'#C8A850',mid:'#A08040',low:'#584018',bot:'#2E2410'},craters:4,rocks:110,veh:'rover',yaws:[0.6,2.2,4.0],task:'采集硫磺样本',gcol:'#F0E0A0'},
   europa:{label:'木卫二',spr:'moonrock',
   zones:[{n:'混沌线条区',c:'rgba(200,210,215,.10)'},{n:'普维尔裂纹',c:'rgba(190,205,210,.12)'},{n:'极地冰脊',c:'rgba(170,190,200,.10)'}],dust:'#C8D0D2',sky:'space',ground:{top:'#D8D8D0',mid:'#B8BCB8',low:'#889095',bot:'#4A5058'},craters:2,rocks:60,yaws:[0.55,2.1,3.9],task:'采集冰壳样本',gcol:'#F0F4F6'},
@@ -1485,7 +1486,7 @@ const LAND_CFG={
   zones:[{n:'伽利略区暗地形',c:'rgba(140,130,120,.12)'},{n:'乌鲁克沟槽',c:'rgba(160,150,138,.10)'},{n:'极冠边界',c:'rgba(180,175,165,.10)'}],dust:'#8A8278',sky:'space',ground:{top:'#8A8074',mid:'#6A625A',low:'#3E3A34',bot:'#22201C'},craters:7,rocks:90,yaws:[0.65,2.25,4.05],task:'采集风化层样本',gcol:'#E8E0D4'},
   callisto:{label:'木卫四',spr:'moonrock',
   zones:[{n:'瓦尔哈拉盆地外缘',c:'rgba(110,100,92,.12)'},{n:'阿斯加德山脉',c:'rgba(96,88,80,.12)'},{n:'萨加裂谷',c:'rgba(84,76,70,.10)'}],dust:'#6A625A',sky:'space',ground:{top:'#6A6058',mid:'#524A44',low:'#2E2A26',bot:'#181614'},craters:9,rocks:100,yaws:[0.6,2.2,4.1],task:'采集原始冰样本',gcol:'#D8D2C8'},
-  titan:{label:'土卫六',spr:'marsrock',
+  titan:{label:'土卫六',obsName:'经历一场甲烷雨',spr:'marsrock',
   zones:[{n:'惠更斯着陆平原',c:'rgba(220,160,80,.12)'},{n:'克拉肯烃海东岸',c:'rgba(200,140,60,.12)'},{n:'香格里拉暗丘',c:'rgba(180,120,50,.10)'}],dust:'#C89048',fog:0.32,sky:{top:'#8A5A20',bot:'#D09048'},sunScale:0.4,ground:{top:'#C89048',mid:'#A87038',low:'#583818',bot:'#2A1A0C'},craters:1,rocks:70,veh:'rover',yaws:[0.6,2.2,4.0],task:'采集烃湖蒸发样',gcol:'#F5E0B8'},
   moon:{label:'月球',obsName:'观测一次流星雨',tex:'moon',spr:'moonrock',
   zones:[{n:'静海东',c:'rgba(205,212,228,.13)'},{n:'风暴洋西脊',c:'rgba(148,138,158,.17)'},{n:'第谷环形山北',c:'rgba(235,228,210,.1)'}],dust:'#B0ACA0',sky:'space',ground:{top:'#7E7C74',mid:'#96948A',low:'#6E6C66',bot:'#3E3D38'},craters:9,rocks:130,yaws:[0.35,1.9,3.6],task:'采集岩石样本',gcol:'#F1DFAE'},
@@ -3765,15 +3766,17 @@ function landEventTick(cc,dayness,mix){        // 动态事件推进（全星球
   else if(id==='jupiter'){cands.push('stormwall');cands.push('moonshadow');}
   else if(id==='saturn')cands.push('ringrain');
   else if(id==='uranus'||id==='neptune')cands.push('diamondrain');
+  else if(id==='io')cands.push('volcanic');
+  else if(id==='titan')cands.push('ringrain');
   else if(id==='moon'||id==='mercury'||id==='pluto')cands.push('meteorstorm');
   if(!cands.length){land.evLast=now-10000;return;}
   const type=cands[(Math.random()*cands.length)|0];
   if(type==='moonshadow')land.evMoon=Math.random()<0.5?'io':'europa';
-  land.ev={type,t0:now,dur:type==='duststorm'?9000:type==='flock'?8000:type==='meteorstorm'?12000:type==='stormwall'?10000:9000};
+  land.ev={type,t0:now,dur:type==='duststorm'?9000:type==='flock'?8000:type==='meteorstorm'?12000:type==='stormwall'?10000:type==='volcanic'?8000:9000};
   land.evLast=now;
   const lc2=landCfg(id);                               // 现象观测任务：目睹 2.5s 即达成
   if(lc2.obsName&&!land.obsDone){land.obsAt=now+2500;land.obsType=type;}
-  toast(type==='duststorm'?'尘暴前锋接近':type==='flock'?'鸟群惊飞':type==='meteorstorm'?'流星雨时段开始':type==='storm'?'雷暴活动频繁':type==='stormwall'?'风暴带逼近——大红斑的边缘气流扫过':type==='ringrain'?'环雨时段开始——冰晶自环系坠入云海':'钻石雨时段开始——碳晶在高层大气凝结坠落');
+  toast(type==='duststorm'?'尘暴前锋接近':type==='flock'?'鸟群惊飞':type==='meteorstorm'?'流星雨时段开始':type==='storm'?'雷暴活动频繁':type==='stormwall'?'风暴带逼近——大红斑的边缘气流扫过':type==='ringrain'?(land.id==='titan'?'甲烷雨落下——橙色的液滴掠过舷窗':'环雨时段开始——冰晶自环系坠入云海'):type==='volcanic'?'岩浆喷发——地平线上裂开了一道火光':'钻石雨时段开始——碳晶在高层大气凝结坠落');
   try{tone(type==='duststorm'?220:660,0.2,'sine',0.05);}catch(e){}
 }
 function drawLandEggs(t,cc){                   // 地表奇观彩蛋（earth 按 cont / 气巨按 planet）
@@ -4044,6 +4047,21 @@ function drawLandEvent(t){                     // 事件视觉
       const fk=1-(t%800)/90;
       ctx.fillStyle='rgba(255,238,205,'+(0.16*fk*pk).toFixed(3)+')';
       ctx.fillRect(0,0,W,H);
+    }
+  }
+  if(land.ev.type==='volcanic'){               // 木卫一：岩浆喷泉（喷口辉光+抛物线熔岩粒）
+    const hyP=land.camP?land.camP.hy*H:H*0.46;
+    const vx=W*0.3, vgy=hyP+H*0.02;
+    const vg=ctx.createRadialGradient(vx,vgy,0,vx,vgy,H*0.16);
+    vg.addColorStop(0,'rgba(255,120,40,'+(0.55*pk).toFixed(2)+')');
+    vg.addColorStop(1,'rgba(255,120,40,0)');
+    ctx.fillStyle=vg;ctx.beginPath();ctx.arc(vx,vgy,H*0.16,0,TAU);ctx.fill();
+    for(let i=0;i<26;i++){
+      const pp=((t*0.0006+i*0.147)%1);
+      const px2=vx+Math.sin(i*2.7)*(1-pp)*W*0.06;
+      const py2=vgy-Math.sin(pp*Math.PI)*H*(0.10+((i*7)%5)*0.009);
+      ctx.fillStyle='rgba(255,150,50,'+(pk*(1-pp)).toFixed(2)+')';
+      ctx.beginPath();ctx.arc(px2,py2,1.6+((i*3)%3),0,TAU);ctx.fill();
     }
   }
   if(land.ev.type==='ringrain'){               // 土星环雨：头顶环带微光+冰晶斜落
@@ -6739,6 +6757,11 @@ window.addEventListener('keydown',e=>{
     focusBody(order[+e.key-1].id);
   }
   if((e.key==='e'||e.key==='E')&&LAYER===0&&land&&land.mode==='surface'){cycleCam();return;}
+  if((e.key==='g'||e.key==='G')&&LAYER===0&&land&&land.mode==='surface'){
+    land.targetYaw=1.2+1.52;                 // 晨昏线方位：恒星恰好悬在地平线上
+    toast('转向晨昏线——等待恒星升落');
+    return;
+  }
   if(e.key==='v'||e.key==='V')$('btn-snd').click();
   if(e.key==='m'||e.key==='M')$('btn-measure').click();
   if((e.key==='c'||e.key==='C')&&LAYER===0&&land&&land.mode==='surface'){
