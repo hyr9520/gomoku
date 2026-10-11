@@ -230,6 +230,11 @@
     cursor:pointer;transition:background .2s;
   }
   #land-map:hover{background:rgba(48,40,24,.9)}
+  #campaign{
+    position:fixed;top:64px;left:14px;z-index:36;max-width:320px;
+    padding:9px 14px;border-radius:10px;font-size:11.5px;letter-spacing:1px;line-height:1.6;
+    color:var(--gold-hi);background:rgba(9,13,26,.85);border:1px solid rgba(229,181,103,.45);
+  }
   #land-cam{
     display:none;position:fixed;top:14px;right:110px;z-index:36;
     padding:8px 16px;border:1px solid rgba(229,181,103,.5);border-radius:9px;
@@ -641,6 +646,7 @@
 <button id="land-scan">扫描 · 空格</button>
 <button id="land-cam">机位 · 观察位</button>
 <button id="land-map" style="display:none">详细地图 · X</button>
+<div id="campaign" style="display:none"></div>
 <button id="land-exit">返回轨道</button>
 <div id="land-hint">继续放大，降落至 <b id="lh-name">月球</b> 的表面</div>
 
@@ -712,6 +718,18 @@
   <div class="dossier-exit-bar"><button id="dossier-exit">关闭档案 · 返回观测</button></div>
 </aside>
 
+<div class="modal" id="campaign-modal">
+  <div class="modal-card">
+    <button class="modal-close" aria-label="关闭" data-close="campaign-modal">
+      <svg width="11" height="11" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.4"><path d="M1 1l8 8M9 1L1 9"/></svg>
+    </button>
+    <h2>完整航程</h2>
+    <p class="modal-sub">巡天任务链 6/6 · 成就已解锁</p>
+    <p style="font-size:14px;line-height:1.9;color:#C6D2E8">2124 年，巡天号从地球出发。你降落过月球与火星，穿过木卫一的火山灰，在土星云海里数过冰晶，闻过泰坦的甲烷雨——然后跃迁：4.2 光年外的红矮星旁，一片微生物垫正在放氧；12.5 光年外的冰海，在黑暗中发光。</p>
+    <p style="font-size:14px;line-height:1.9;color:#C6D2E8">生命不止一种模样，家园不止一颗恒星。而这一切的起点，只是某个普通的夜晚，有人抬起了头。</p>
+    <p style="font-size:13px;color:var(--gold);margin-top:14px">巡天号的旅程由你继续书写。——K-7 敬上</p>
+  </div>
+</div>
 <div class="modal" id="egg-modal">
   <div class="modal-card">
     <button class="modal-close" aria-label="关闭" data-close="egg-modal">
@@ -1487,6 +1505,7 @@ const ACHV=[
  ['exarchivist','星系开拓者','进入全部三个外星星系'],
  ['warpdriven','跃迁领航员','第一次启动巡天号的跃迁引擎'],
  ['halley2061','彗星猎人','见证哈雷彗星 2061 年回归'],
+ ['fullvoyage','完整航程','完成巡天任务链全部六段'],
  ['polymath','博学者','单轮测验全部答对'],
 ];
 function achvGet(){try{return JSON.parse(localStorage.getItem('atlas-achv')||'{}')}catch(e){return{}}}
@@ -1556,7 +1575,7 @@ function rumble(dur){
 
 /* ═══ L0 着陆模式：登上星球表面 ═══ */
 const LAND_CFG={
-  'ex-proxib':{label:'比邻星 b',spr:'moonrock',
+  'ex-proxib':{label:'比邻星 b',obsName:'记录一次火山活动',spr:'moonrock',
   zones:[{n:'晨昏圈温带',c:'rgba(200,120,80,.12)'},{n:'永夜冰原边缘',c:'rgba(120,120,150,.12)'},{n:'红壤台地',c:'rgba(160,90,60,.12)'}],dust:'#B06848',sky:{top:'#2A0E08',bot:'#B05830'},sunScale:2.2,ground:{top:'#8A4830',mid:'#5E3020',low:'#301810',bot:'#180C08'},craters:5,rocks:120,veh:'rover',yaws:[0.6,2.2,4.0],task:'采集红壤样本',gcol:'#F0C8A8'},
   'ex-trappe':{label:'TRAPPIST-1 e',spr:'moonrock',
   zones:[{n:'向日冰原',c:'rgba(200,220,230,.10)'},{n:'晨昏雨带',c:'rgba(150,190,200,.12)'},{n:'背日冰川',c:'rgba(170,200,215,.10)'}],dust:'#C8D8DC',sky:'space',ground:{top:'#C8D4D4',mid:'#9AAAB0',low:'#5E6E74',bot:'#2E3A40'},craters:3,rocks:80,yaws:[0.55,2.15,3.95],task:'采集冰壳与大气样本',gcol:'#F0F6F6'},
@@ -1706,6 +1725,12 @@ const EGGS=[
   desc:'1953 年 5 月 29 日，埃德蒙·希拉里与丹增·诺尔盖沿这段仅 12 米高的岩脊登上珠穆朗玛之巅——台阶以希拉里命名，是登顶前的最后一道门。2015 年尼泊尔地震改变了它的形状；如今每年数百人抓着同一条固定绳挤过这里。海拔约 8790 米的这几级岩石，是人类攀登史上最著名的一段路。'},
  {id:'mirror',cont:'uyuni',yaw:3.4,draw:'mirror',name:'天空之镜',
   desc:'乌尤尼盐沼面积超过一万平方公里——世界上最大的盐滩。每年雨季，薄薄一层积水把整个天空完整地倒映在地面上，天地边界就此消失。盐壳之下还沉睡着全球最大的锂储量之一：这片白色沙漠，正照亮着电动汽车时代的电池。'},
+ {id:'stromato',planet:'ex-proxib',yaw:2.6,draw:'glowpad',name:'微生物垫遗迹',
+  desc:'采样分析的结果让整个飞船陷入沉默：晨昏圈温带的浅水池里，成片的微生物垫正在放氧——矿物说不出谎，这是生命。地球 35 亿年前的叠层石，正在 4.2 光年外重演同一个开头。我们不再孤独，只是相遇得太早。',
+  facts:['结构类似地球最古老的化石：35 亿年前的叠层石。','放氧微生物——晨昏圈是它们唯一的家园。','样本编号 PXB-BIO-01，已封存至飞船生物舱。']},
+ {id:'biolum',planet:'ex-trappe',yaw:3.3,draw:'glowsea',name:'生物荧光之海',
+  desc:'冰缝间的液态海在黑暗中发光——一明一暗的节律不是潮汐，是呼吸。荧光浮游生物的群体闪烁让整片海面像星空的倒影。TRAPPIST-1 e 的答案来得比谁的预期都早：生命不需要阳光，只需要一个不放弃的海洋。',
+  facts:['群体荧光节律约 6 小时——与行星自转同步。','发光光谱含叶绿素特征峰——异星光合作用。','冰缝热液可能是它们的能量来源。']},
  {id:'cydonia',planet:'mars',yaw:4.9,draw:'mesa',name:'基多尼亚台地',
   desc:'1976 年「海盗 1 号」在这片台地拍到一张著名的「人脸」——低分辨率下，阴影与轮廓恰好拼出了眼与鼻的错觉。2001 年火星全球勘测者以更高分辨率重拍：只是一座被风蚀出棱线的普通台地。这张「脸」成了行星科学最著名的一堂课——我们想看见的东西，未必真的在那里。'}
 ];
@@ -3788,6 +3813,19 @@ function eggThumbURI(eg){                      // 日志缩略图：sprite 直�
     mg3.addColorStop(0,'rgba(228,240,250,.6)');mg3.addColorStop(1,'rgba(228,240,250,.15)');
     g9.fillStyle=mg3;g9.beginPath();g9.ellipse(60,46,44,12,0,0,TAU);g9.fill();
     g9.strokeStyle='rgba(255,255,255,.5)';g9.lineWidth=1.3;g9.beginPath();g9.ellipse(60,46,44,12,0,0,TAU);g9.stroke();
+  }else if(eg.draw==='glowpad'){
+    for(let k10=0;k10<4;k10++){
+      g9.fillStyle='rgba(90,200,130,.85)';
+      g9.beginPath();g9.ellipse(34+k10*16,44-(k10%2)*7,13,6.5,0,0,TAU);g9.fill();
+    }
+    g9.fillStyle='rgba(170,255,190,.9)';
+    g9.beginPath();g9.ellipse(50,38,7,3.4,0,0,TAU);g9.fill();
+  }else if(eg.draw==='glowsea'){
+    const mg5=g9.createLinearGradient(0,32,0,56);
+    mg5.addColorStop(0,'rgba(90,220,255,.55)');mg5.addColorStop(1,'rgba(90,220,255,.12)');
+    g9.fillStyle=mg5;g9.beginPath();g9.ellipse(60,45,42,11,0,0,TAU);g9.fill();
+    g9.fillStyle='rgba(190,240,255,.9)';
+    for(let k11=0;k11<6;k11++){g9.beginPath();g9.arc(28+k11*13,43+(k11%2)*5,1.5,0,TAU);g9.fill();}
   }else if(eg.draw==='beacon'){
     g9.strokeStyle='rgba(140,235,190,.9)';g9.lineWidth=1.6;
     g9.beginPath();g9.moveTo(52,60);g9.lineTo(57,22);g9.lineTo(63,22);g9.lineTo(68,60);g9.closePath();g9.stroke();
@@ -3990,7 +4028,7 @@ function landEventTick(cc,dayness,mix){        // 动态事件推进（全星球
   else if(id==='jupiter'){cands.push('stormwall');cands.push('moonshadow');}
   else if(id==='saturn')cands.push('ringrain');
   else if(id==='uranus'||id==='neptune')cands.push('diamondrain');
-  else if(id==='io')cands.push('volcanic');
+  else if(id==='io'||id==='ex-proxib')cands.push('volcanic');
   else if(id==='titan')cands.push('ringrain');
   else if(id==='moon'||id==='mercury'||id==='pluto')cands.push('meteorstorm');
   if(!cands.length){land.evLast=now-10000;return;}
@@ -4000,7 +4038,7 @@ function landEventTick(cc,dayness,mix){        // 动态事件推进（全星球
   land.evLast=now;
   const lc2=landCfg(id);                               // 现象观测任务：目睹 2.5s 即达成
   if(lc2.obsName&&!land.obsDone){land.obsAt=now+2500;land.obsType=type;}
-  toast(type==='duststorm'?'尘暴前锋接近':type==='flock'?'鸟群惊飞':type==='meteorstorm'?'流星雨时段开始':type==='storm'?'雷暴活动频繁':type==='stormwall'?'风暴带逼近——大红斑的边缘气流扫过':type==='ringrain'?(land.id==='titan'?'甲烷雨落下——橙色的液滴掠过舷窗':'环雨时段开始——冰晶自环系坠入云海'):type==='volcanic'?'岩浆喷发——地平线上裂开了一道火光':'钻石雨时段开始——碳晶在高层大气凝结坠落');
+  toast(type==='duststorm'?'尘暴前锋接近':type==='flock'?'鸟群惊飞':type==='meteorstorm'?'流星雨时段开始':type==='storm'?'雷暴活动频繁':type==='stormwall'?'风暴带逼近——大红斑的边缘气流扫过':type==='ringrain'?(land.id==='titan'?'甲烷雨落下——橙色的液滴掠过舷窗':'环雨时段开始——冰晶自环系坠入云海'):type==='volcanic'?(land.id==='ex-proxib'?'潮汐火山喷发——红矮星的引力撕开了地壳':'岩浆喷发——地平线上裂开了一道火光'):'钻石雨时段开始——碳晶在高层大气凝结坠落');
   try{tone(type==='duststorm'?220:660,0.2,'sine',0.05);}catch(e){}
 }
 function drawLandEggs(t,cc){                   // 地表奇观彩蛋（earth 按 cont / 气巨按 planet）
@@ -4119,6 +4157,38 @@ function drawLandEggs(t,cc){                   // 地表奇观彩蛋（earth 按
       ctx.beginPath();ctx.moveTo(-H*0.02,-H*0.10);ctx.lineTo(H*0.05,-H*0.06);ctx.lineTo(H*0.015,-H*0.02);ctx.closePath();ctx.fill();
       ctx.strokeStyle='rgba(90,110,130,.7)';ctx.lineWidth=1.6;
       ctx.beginPath();ctx.moveTo(-H*0.11,2);ctx.lineTo(-H*0.02,-H*0.10);ctx.lineTo(H*0.12,2);ctx.stroke();
+      ctx.restore();
+    }else if(eg.draw==='glowpad'){             // 微生物垫：荧光丘群
+      const gpY=hyP+H*0.15;
+      ctx.save();ctx.translate(sx,gpY);
+      for(let k7=0;k7<5;k7++){
+        const px7=(k7-2)*H*0.055, pr7=H*(0.035+0.012*Math.sin(k7*2.3));
+        const pg7=ctx.createRadialGradient(px7,-pr7*0.4,0,px7,-pr7*0.4,pr7*1.6);
+        pg7.addColorStop(0,'rgba(150,255,170,'+(0.75+0.25*Math.sin(t*0.002+k7)).toFixed(2)+')');
+        pg7.addColorStop(0.6,'rgba(70,180,120,.55)');
+        pg7.addColorStop(1,'rgba(70,180,120,0)');
+        ctx.fillStyle=pg7;
+        ctx.beginPath();ctx.ellipse(px7,-pr7*0.15,pr7*1.35,pr7*0.62,0,0,TAU);ctx.fill();
+      }
+      ctx.restore();
+    }else if(eg.draw==='glowsea'){             // 生物荧光之海：呼吸光带
+      const gsY=hyP+H*0.16;
+      ctx.save();ctx.translate(sx,gsY);
+      for(let k8=0;k8<4;k8++){
+        const wa8=0.4+0.35*Math.sin(t*0.0025+k8*1.9);
+        const wg8=ctx.createLinearGradient(0,-H*0.045+k8*H*0.02,0,H*0.03+k8*H*0.02);
+        wg8.addColorStop(0,'rgba(90,220,255,0)');
+        wg8.addColorStop(0.5,'rgba(110,225,255,'+(wa8*0.8).toFixed(2)+')');
+        wg8.addColorStop(1,'rgba(90,220,255,0)');
+        ctx.fillStyle=wg8;
+        ctx.beginPath();ctx.ellipse(0,H*0.005+k8*H*0.02,W*0.19,H*0.045,0,0,TAU);ctx.fill();
+      }
+      ctx.fillStyle='rgba(170,235,255,.5)';
+      for(let k9=0;k9<9;k9++){
+        const sx9=((k9*0.13+t*0.00005)%1-0.5)*W*0.3;
+        const sy9=Math.sin(k9*2.4+t*0.001)*H*0.015;
+        ctx.beginPath();ctx.arc(sx9,sy9,1.4,0,TAU);ctx.fill();
+      }
       ctx.restore();
     }else if(eg.draw==='mirror'){              // 天空之镜：镜面反光带
       const gy2=hyP+H*0.16;
@@ -4347,6 +4417,7 @@ function drawLand(t,dt){
   const seq=landSeq(e);
   const lmb=document.getElementById('land-map');
   if(lmb)lmb.style.display=(land.id==='earth')?'block':'none';
+  campCheck();
   ctx.save();
   // 下降遥测 HUD（0-2400ms）
   if(e<2400){
@@ -5586,6 +5657,45 @@ function drawExSystem(t){
 
 /* ── L2 深空层：星际邻域 ── */
 let scanPulse=null, frb=null, nextFRB=0, warpFx=null;
+const CAMPAIGN=[
+  {id:'land',t:'首次着陆',x:'降落到任意一颗星球的表面'},
+  {id:'scan',t:'深空扫描',x:'在星际邻域按 X，定位外星星系信号'},
+  {id:'exsys',t:'踏入异星',x:'放大信号源，进入一个外星星系'},
+  {id:'exland',t:'系外足迹',x:'降落到比邻星 b 或 TRAPPIST-1 e'},
+  {id:'t2061',t:'时间旅行',x:'在天象面板跳转 2061，见证哈雷回归'},
+  {id:'end',t:'完整航程',x:'巡天号的旅程由你继续书写'}
+];
+function campState(){let c9={step:0};try{c9=JSON.parse(localStorage.getItem('atlas-campaign')||'{"step":0}')}catch(e){}
+  if(c9.step===undefined)c9.step=0;return c9;}
+function campSave(c9){try{localStorage.setItem('atlas-campaign',JSON.stringify(c9))}catch(e){}}
+function campCheck(){
+  const c9=campState();
+  if(c9.step>=CAMPAIGN.length)return;
+  const done={
+    0:Object.keys(landVisited||{}).length>=1,
+    1:!!scanPulse,
+    2:Object.keys(exVis()).length>=1,
+    3:!!land&&(land.id==='ex-proxib'||land.id==='ex-trappe')&&land.mode==='surface',
+    4:!!achvGet().halley2061
+  };
+  if(done[c9.step]){
+    c9.step++;campSave(c9);
+    const m9=CAMPAIGN[c9.step-1];
+    toast('巡天任务达成：'+m9.t+'（'+c9.step+'/'+CAMPAIGN.length+'）');
+    if(c9.step>=CAMPAIGN.length-1){
+      unlockAchv('fullvoyage');
+      const mm9=document.getElementById('campaign-modal');
+      if(mm9)mm9.classList.add('open');
+    }else renderCampaign();
+  }
+}
+function renderCampaign(){
+  const c9=campState();
+  const el=document.getElementById('campaign');
+  if(!el)return;
+  if(c9.step>=CAMPAIGN.length){el.style.display='none';return;}
+  el.textContent='巡天任务 '+c9.step+'/'+CAMPAIGN.length+'：'+CAMPAIGN[c9.step].t+'——'+CAMPAIGN[c9.step].x;
+}
 function warpTo(st){                            // 跃迁引擎：飞向目标恒星
   warpFx={t0:performance.now(),dur:1500};
   camTarget=null;
