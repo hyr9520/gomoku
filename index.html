@@ -589,7 +589,7 @@
   }
   #land-guide.show{opacity:1}
   @media (max-width:760px){
-    #land-card{max-width:196px;font-size:10.5px;padding:8px 10px;line-height:1.5}
+    #land-card{max-width:196px;font-size:10.5px;padding:8px 10px;line-height:1.5;top:58px}
     #land-scan,#land-cam,#land-exit{font-size:10px;padding:7px 9px;letter-spacing:1px}
     #land-exit{right:10px}
     #land-cam{right:78px}
@@ -2999,7 +2999,7 @@ function bakeGlobeView(){
   g.fillStyle=dg;g.beginPath();g.arc(S/2,S/2,R,0,TAU);g.fill();
   g.globalCompositeOperation='destination-in';   // 圆形裁剪：方形贴图边不外露
   g.fillStyle='#fff';                              // 遮罩须全不透明
-  g.beginPath();g.arc(S/2,S/2,R-0.5,0,TAU);g.fill();
+  g.beginPath();g.arc(S/2,S/2,Math.max(1,R-0.5),0,TAU);g.fill();
   g.globalCompositeOperation='source-over';
   land.globeDirty=false;
 }
@@ -3086,6 +3086,25 @@ function drawDescent(t){
   ctx.save();ctx.translate(ccx-cx,ccy-cy);
   ctx.drawImage(land.globeCv,cx-R,cy-R,R*2,R*2);
   ctx.restore();
+  // 再入等离子辉光：屏幕边缘橙红增亮+外缘速度线（下降中段最强）
+  if(k>0.06&&k<0.52){
+    const ra=clamp(1-Math.abs(k-0.26)/0.24,0,1)*clamp((0.52-k)/0.1,0,1);
+    const pg=ctx.createRadialGradient(W/2,H*0.47,Math.min(W,H)*0.28,W/2,H*0.47,Math.max(W,H)*0.72);
+    pg.addColorStop(0,'rgba(255,140,60,0)');
+    pg.addColorStop(0.72,'rgba(255,120,50,'+(0.20*ra).toFixed(2)+')');
+    pg.addColorStop(0.92,'rgba(255,70,30,'+(0.34*ra).toFixed(2)+')');
+    pg.addColorStop(1,'rgba(255,180,120,'+(0.30*ra).toFixed(2)+')');
+    ctx.fillStyle=pg;ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='rgba(255,220,180,'+(0.35*ra).toFixed(2)+')';ctx.lineWidth=1.6;
+    for(let i=0;i<14;i++){
+      const an=(i*0.449+t*0.00035)%TAU;
+      const rr0=Math.min(W,H)*(0.5+((i*37+t*0.4)%80)/80*0.24);
+      ctx.beginPath();
+      ctx.moveTo(W/2+Math.cos(an)*rr0,H*0.47+Math.sin(an)*rr0);
+      ctx.lineTo(W/2+Math.cos(an)*(rr0+26+ra*30),H*0.47+Math.sin(an)*(rr0+26+ra*30));
+      ctx.stroke();
+    }
+  }
   // 云雾穿层（后半段白雾渐起）
   if(k>0.45){
     const wa=clamp((k-0.45)/0.55,0,1);
@@ -4175,12 +4194,16 @@ function drawLandMoon(t,drop){
   const ex=(((0.85-yaw*0.22)%1+1)%1)*W;
   const er=Math.min(H*0.1,74),ey=H*0.2;
   if(ex>-er&&ex<W+er&&TEX_FULL.earth){
+    const eph=(moonPhase(simDays())+0.5)%1;          // 地相与月相互补：月朔=满地
+    const eillum=(1-Math.cos(eph*TAU))/2;
     ctx.save();
     ctx.drawImage(TEX_FULL.earth,ex-er,ey-er,er*2,er*2);
-    if(TEX_IMG.clouds){
+    ctx.beginPath();ctx.arc(ex,ey,er*1.02,0,TAU);ctx.clip();
+    ctx.fillStyle='rgba(6,8,16,.88)';                // 相位暗盘从地平线方向升入
+    ctx.beginPath();ctx.arc(ex,ey+er*1.9*(1-eillum),er*1.06,0,TAU);ctx.fill();
+    if(TEX_IMG.clouds&&eillum>0.08){
       ctx.globalCompositeOperation='screen';
-      ctx.globalAlpha=0.5;
-      ctx.beginPath();ctx.arc(ex,ey,er,0,TAU);ctx.clip();
+      ctx.globalAlpha=0.5*eillum;
       const lon2=((t*0.00001)%1);
       ctx.drawImage(TEX_IMG.clouds,lon2*TEX_IMG.clouds.width,0,TEX_IMG.clouds.width*0.4,TEX_IMG.clouds.height,ex-er,ey-er,er*2,er*2);
       ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
