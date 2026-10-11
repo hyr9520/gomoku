@@ -1592,7 +1592,15 @@ const CONTINENTS=[
  {id:'kilimanjaro',name:'乞力马扎罗山脚',lat:-3.1,lon:37,kind:'poi',
   sky:['#E8C8A0','#C89058'],ground:{top:'#A8A850',mid:'#887838',low:'#584820'},hill:'#B8B890',
   feat:'savanna',tex:'drygrass',task:'采集草原样本',brief:'非洲之巅的雪冠在云上隐现。象群迁徙路线正途经此地——沿海拔梯度采集三份样本。',
-  names:['KJ-01 高地草籽','KJ-02 火山灰壤','KJ-03 云雾林叶片'],yaws:[0.7,2.4,4.15]}
+  names:['KJ-01 高地草籽','KJ-02 火山灰壤','KJ-03 云雾林叶片'],yaws:[0.7,2.4,4.15]},
+ {id:'maldives',name:'马尔代夫环礁',lat:3.2,lon:73.2,kind:'poi',
+  sky:['#A8E0F0','#68B8D8'],ground:{top:'#F0EAD8',mid:'#D8CFA8',low:'#B8AA78'},hill:'#D8CFA8',
+  feat:'beach',tex:'whitesand',task:'采集环礁样本',brief:'海平面上升的最前线——全国八成陆地海拔不足一米。采集环礁白沙与浅海沉积，记录今年的潮线位置。',
+  names:['MV-01 环礁白沙滩','MV-02 浅海沉积物','MV-03 潮线贝壳砂'],yaws:[0.6,2.3,4.0]},
+ {id:'fuji',name:'富士山 · 山麓',lat:35.4,lon:138.7,kind:'poi',snow:true,
+  sky:['#C8D8EC','#98B4D0'],ground:{top:'#8A8478',mid:'#6A655C',low:'#3A3830'},hill:'#5A5A62',
+  feat:'alps',tex:'scree',task:'采集火山灰样本',brief:'完美对称的活火山锥。1707 年宝永大喷发的火山灰层仍埋在山麓地下——沿登山道采集三段喷发物与融水样本。',
+  names:['FJ-01 宝永火山灰','FJ-02 熔岩碎屑','FJ-03 雪水融水样'],yaws:[0.5,2.2,4.0]}
 ];
 const CONTINENT_BY_ID={};CONTINENTS.forEach(c=>CONTINENT_BY_ID[c.id]=c);
 const EGGS=[
@@ -3147,12 +3155,26 @@ function drawEarthMap(t){                        // 地球 2D 详细地图：NAS
       ctx.fillText(lb[0],lx,ly2);
     }
   }
-  // 13 着陆点标记（金圆=大洲 / 青菱=POI）
+  // 13 着陆点标记（金圆=大洲 / 青菱=POI）；着陆态当前点亮星标
   for(const c of CONTINENTS){
     const mx2=W/2+(((c.lon-land.mapCx+540)%360)-180)*ppd;
     const my2=H/2-(c.lat-land.mapCy)*ppd;
     if(mx2<-30||mx2>W+30||my2<-30||my2>H+30)continue;
     const poi=c.kind==='poi';
+    if(land.mode==='surface'&&c.id===land.continent){
+      const st2=t*0.004;
+      ctx.strokeStyle='rgba(255,255,255,'+(0.65+0.3*Math.sin(st2)).toFixed(2)+')';
+      ctx.lineWidth=2;
+      ctx.beginPath();
+      for(let k5=0;k5<5;k5++){
+        const a1=-Math.PI/2+k5*TAU/5, a2=a1+TAU/10;
+        ctx.lineTo(mx2+Math.cos(a1)*13,my2+Math.sin(a1)*13);
+        ctx.lineTo(mx2+Math.cos(a2)*5.5,my2+Math.sin(a2)*5.5);
+      }
+      ctx.closePath();ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,.9)';ctx.font='11px "Segoe UI","Microsoft YaHei",sans-serif';
+      ctx.fillText('当前位置',mx2,my2+26);
+    }
     if(poi){
       ctx.save();ctx.translate(mx2,my2);ctx.rotate(Math.PI/4);
       ctx.fillStyle='rgba(140,228,238,.95)';ctx.fillRect(-3.4,-3.4,6.8,6.8);
@@ -5122,6 +5144,14 @@ function bakeSkyStars(){                        // 地表专属星空：三档�
   return c;
 }
 function drawLandEarth(t,drop){
+  if(land.mapView){
+    const mb=document.getElementById('land-map');
+    if(mb)mb.style.display='block';
+    drawEarthMap(t);
+    return;
+  }
+  const mb=document.getElementById('land-map');
+  if(mb)mb.style.display='none';
   const cc=CONTINENT_BY_ID[land.continent]||CONTINENTS[0];
   const yaw=land.yaw,sunYaw=1.2;
   if(!land.camP)land.camP={hy:LAND_CAMS[0].hy,hh:LAND_CAMS[0].hh,zg:1.0,zh:1.0};
@@ -6764,12 +6794,17 @@ $('land-scan').onclick=cycleScan;
 $('land-cam').onclick=cycleCam;
 let measureMode=false,measureA=null,measureB=null;
 $('land-map').onclick=()=>{
-  if(!land||land.id!=='earth'||land.mode!=='globe')return;
+  if(!land||land.id!=='earth'||(land.mode!=='globe'&&land.mode!=='surface'))return;
   land.mapView=!land.mapView;
   if(land.mapView){
     land.mapScale=land.mapScale||1.6;
-    land.mapCx=land.mapCx!==undefined?land.mapCx:(land.lon0||0);
-    land.mapCy=land.mapCy!==undefined?land.mapCy:18;
+    if(land.mode==='surface'&&land.continent){
+      const mc=CONTINENT_BY_ID[land.continent];
+      if(mc){land.mapCx=mc.lon;land.mapCy=mc.lat;land.mapScale=Math.max(land.mapScale,2.6);}
+    }else{
+      land.mapCx=land.mapCx!==undefined?land.mapCx:(land.lon0||0);
+      land.mapCy=land.mapCy!==undefined?land.mapCy:18;
+    }
     toast('地球详细地图——拖动浏览，点击标记直接降落');
   }
 };
@@ -6899,12 +6934,17 @@ window.addEventListener('keydown',e=>{
     focusBody(order[+e.key-1].id);
   }
   if((e.key==='e'||e.key==='E')&&LAYER===0&&land&&land.mode==='surface'){cycleCam();return;}
-  if((e.key==='x'||e.key==='X')&&LAYER===0&&land&&land.id==='earth'&&land.mode==='globe'){
+  if((e.key==='x'||e.key==='X')&&LAYER===0&&land&&land.id==='earth'&&(land.mode==='globe'||land.mode==='surface')){
     land.mapView=!land.mapView;
     if(land.mapView){
       land.mapScale=land.mapScale||1.6;
-      land.mapCx=land.mapCx!==undefined?land.mapCx:(land.lon0||0);
-      land.mapCy=land.mapCy!==undefined?land.mapCy:18;
+      if(land.mode==='surface'&&land.continent){
+        const mc=CONTINENT_BY_ID[land.continent];
+        if(mc){land.mapCx=mc.lon;land.mapCy=mc.lat;land.mapScale=Math.max(land.mapScale,2.6);}
+      }else{
+        land.mapCx=land.mapCx!==undefined?land.mapCx:(land.lon0||0);
+        land.mapCy=land.mapCy!==undefined?land.mapCy:18;
+      }
       toast('地球详细地图——拖动浏览，点击标记直接降落');
     }
     return;
@@ -7022,6 +7062,10 @@ const NOTES=[
   '木卫二冰壳下的海洋水量可能是地球所有海洋加起来的两倍——寻找生命的头号目标。',
   '土卫六的湖泊里装的是液态甲烷——零下 179°C 的一整套「甲烷循环」。',
   '1610 年伽利略用自制的 20 倍望远镜发现四颗木卫——为日心说提供了关键证据。',
+  '织女星在约 1.4 万年后将再度成为北极星——地轴像陀螺一样缓慢摆动，北极星的头衔轮流坐。',
+  'TRAPPIST-1 的行星公转最快只要 1.5 天——住在那里，一年比一天还短。',
+  '室女座星系团的核心 M87，正是 2019 年第一张黑洞照片的主角。',
+  '马尔代夫八成陆地海拔不足一米——它是观测海平面上升最直接的前线。',
 ];
 let noteIdx=Math.floor(Math.random()*NOTES.length);
 let noteFadeTimer=null;
@@ -7107,6 +7151,14 @@ const QUIZ=[
    note:'2005 年「惠更斯」号降落在土卫六——那里下着液态甲烷的雨。'},
   {q:'珠峰「希拉里台阶」的名字纪念谁？',opts:['首次登顶的埃德蒙·希拉里','发现珠峰的测绘官','一位夏尔巴向导','尼泊尔国王'],a:0,
    note:'1953 年希拉里与丹增·诺尔盖经这段岩脊首登珠峰——它是登顶前的最后一道门。'},
+  {q:'哪颗恒星拥有 7 颗类地行星、其中 3 颗在宜居带？',opts:['TRAPPIST-1','比邻星','天狼星','织女星'],a:0,
+   note:'TRAPPIST-1 是 12.5 光年外的超冷红矮星——2017 年的发现让「行星婚礼」一词登上头条。'},
+  {q:'1838 年贝塞尔首次测出恒星视差，测的是哪颗星？',opts:['天鹅座 61','天狼星','织女星','南门二'],a:0,
+   note:'贝塞尔测出天鹅座 61 距离 11.4 光年——人类第一次真正「量」出了恒星的距离。'},
+  {q:'「褐矮星」指的是？',opts:['质量介于行星与恒星之间、无法点燃氢聚变的天体','锈红色的普通行星','熄灭的白矮星','气态巨行星的卫星'],a:0,
+   note:'6.5 光年外的鲁曼 16 就是一对褐矮星——太暗了，直到 2013 年才被红外巡天发现。'},
+  {q:'「拉尼亚凯亚」超星系团的范围内大约有多少个星系？',opts:['约 10 万','约 100','约 1000','约 10 亿'],a:0,
+   note:'10 万个星系（含银河系）正以 600 km/s 流向巨引源——夏威夷语意为「噬无际的天堂」。'},
 ];
 let qOrder=[],qIdx=0,qScore=0,qLocked=false;
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
