@@ -1476,6 +1476,7 @@ const ACHV=[
  ['discoverer','文明侦探','在地表发现一处奇观或遗迹'],
  ['beaconmaster','先行者之证','集齐全部六段先驱者留言'],
  ['io-shadow','凌影见证者','目睹一次木星卫星凌影'],
+ ['exarchivist','星系开拓者','进入全部三个外星星系'],
  ['polymath','博学者','单轮测验全部答对'],
 ];
 function achvGet(){try{return JSON.parse(localStorage.getItem('atlas-achv')||'{}')}catch(e){return{}}}
@@ -5506,7 +5507,7 @@ function drawDeeper(t,dt){
       }
     }
   }
-  if(LAYER===5)drawExSystem(t);
+  if(LAYER===5){markExVisited(EXCUR);drawExSystem(t);}
   drawMeteors(t,dt);
   const vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.38,W/2,H/2,Math.max(W,H)*0.8);
   vg.addColorStop(0,'rgba(3,4,12,0)');
@@ -5574,8 +5575,48 @@ function drawExSystem(t){
 }
 
 /* ── L2 深空层：星际邻域 ── */
+let scanPulse=null, frb=null, nextFRB=0;
+function exVis(){try{return JSON.parse(localStorage.getItem('atlas-exsys')||'{}')}catch(e){return{}}}
+function markExVisited(id){
+  let v=exVis();
+  if(v[id])return;
+  v[id]=1;
+  try{localStorage.setItem('atlas-exsys',JSON.stringify(v))}catch(e){}
+  const n=Object.keys(v).length;
+  if(n>=3)unlockAchv('exarchivist');
+  else toast('星系探索进度：'+n+'/3——还有更远的信号等着你');
+}
+function deepScan(){                            // 深空扫描：定位最近未探索星系
+  scanPulse={t0:performance.now()};
+  tone(392,0.3,'sine',0.04);tone(523,0.35,'sine',0.035,0.18);
+  const v=exVis();
+  let best=null;
+  for(const k in EXSYS){
+    const st=STARS.find(x2=>x2.id===k);
+    if(!st)continue;
+    if(!best||(st.ly<best.st.ly))best={st,k};
+  }
+  let target=null;
+  for(const k in EXSYS){
+    if(v[k])continue;
+    const st=STARS.find(x2=>x2.id===k);
+    if(st&&(!target||st.ly<target.st.ly))target={st,k};
+  }
+  if(!target)target=best;
+  if(!target)return;
+  target.st._scanUntil=performance.now()+9000;
+  toast(target.st===best&&v[target.k]?'深空扫描：周边星系均已探索——「'+target.st.name+'」在 '+target.st.ly+' 光年外待命':'深空扫描：检测到「'+target.st.name+' 星系」信号——'+target.st.ly+' 光年，方位已标记');
+}
+function drawDeepEventTick(t){                  // 星际事件推进（FRB）
+  if(!frb){
+    if(!nextFRB)nextFRB=t+30000+Math.random()*50000;
+    if(t>nextFRB){frb={t0:t,dur:1600};nextFRB=t+70000+Math.random()*90000;
+      toast('快速射电暴：来自数十亿光年外的毫秒呼啸——人类至今不知道它是什么');}
+  } else if(t-frb.t0>frb.dur)frb=null;
+}
 function drawDeep(t,dt){
   if(LAYER!==2){drawDeeper(t,dt);return;}
+  drawDeepEventTick(t);
   if(bgCv)ctx.drawImage(bgCv,0,0,W,H);
   // 太阳侧暖光（朝向太阳的隐性光源暗示）
   const par=(cam.x*cam.zoom*0.02+mouse.x*0.008)%W;
@@ -5730,6 +5771,52 @@ function draw(t,dt){
     }
   }
 
+  // 深空扫描脉冲 + 星系方位标记
+  if(scanPulse){
+    const k=(t-scanPulse.t0)/1200;
+    if(k>=1)scanPulse=null;
+    else{
+      const r=k*Math.max(W,H)*0.75;
+      ctx.strokeStyle='rgba(140,235,190,'+(0.5*(1-k)).toFixed(2)+')';
+      ctx.lineWidth=2.2;
+      ctx.beginPath();ctx.arc(W/2,H/2,r,0,TAU);ctx.stroke();
+    }
+  }
+  for(const k in EXSYS){
+    const st=STARS.find(x2=>x2.id===k);
+    if(!st||!st._scanUntil||st._scanUntil<t)continue;
+    const sx2=viewCX()+(st.x-cam.x)*cam.zoom, sy2=H/2+(st.y-cam.y)*cam.zoom;
+    const pu=0.5+0.5*Math.sin(t*0.005);
+    ctx.strokeStyle='rgba(140,235,190,'+(0.4+0.35*pu).toFixed(2)+')';
+    ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.arc(sx2,sy2,16+3*pu,0,TAU);ctx.stroke();
+    ctx.fillStyle='rgba(140,235,190,.85)';
+    ctx.fillText('信号源',sx2,sy2-24);
+  }
+  // FRB：快速射电暴涟漪
+  if(frb){
+    const k=(t-frb.t0)/frb.dur;
+    if(k<1){
+      const fk=Math.sin(Math.PI*k);
+      for(let q=0;q<3;q++){
+        const r=(k*0.5+q*0.16)*Math.max(W,H);
+        ctx.strokeStyle='rgba(140,235,190,'+(0.30*fk*(1-q*0.3)).toFixed(2)+')';
+        ctx.lineWidth=2-q*0.4;
+        ctx.beginPath();ctx.arc(W*0.78,H*0.2,r,0,TAU);ctx.stroke();
+      }
+    } else frb=null;
+  }
+  // 遥测 HUD：探索度+最近恒星
+  {
+    const v=exVis(), vn=Object.keys(v).length;
+    let near=null;
+    for(const st of STARS){if(st.id==='sol')continue;if(!near||st.ly<near.ly)near=st;}
+    ctx.font='11px "Segoe UI","Microsoft YaHei",sans-serif';
+    ctx.textAlign='left';
+    ctx.fillStyle='rgba(241,223,174,.7)';
+    ctx.fillText('外星星系探索 '+vn+'/3 · 最近恒星 '+near.name+'（'+near.ly+' 光年）· X 深空扫描',14,22);
+    ctx.textAlign='center';
+  }
   // 小行星带（整层位图，随相机变换）
   if(showBelt&&beltCv){
     ctx.save();
@@ -6358,7 +6445,7 @@ function frame(t){
   // 分层宇宙：缩得太深/太浅时跨层（白闪过渡）
   if(t>scaleLockUntil){
     if(LAYER===1&&cam.zoom<0.08)setLayer(2,0.55,'星际邻域 · 太阳周围 12 光年');
-    else if(LAYER===2&&cam.zoom>8&&EXSYS[camTarget]){EXCUR=camTarget;setLayer(5,1.2,EXSYS[camTarget].label);}
+    else if(LAYER===2&&cam.zoom>8&&EXSYS[camTarget]){EXCUR=camTarget;markExVisited(camTarget);setLayer(5,1.2,EXSYS[camTarget].label);}
     else if(LAYER===2&&cam.zoom>8)setLayer(1,fitZoom()*0.5,'太阳系');
     else if(LAYER===5&&cam.zoom>7&&!flyAnim&&!camTarget)setLayer(2,16,'星际邻域');
     else if(LAYER===2&&cam.zoom<0.02)setLayer(3,0.03,'银河系 · 直径 10 万光年');
@@ -7080,6 +7167,7 @@ window.addEventListener('keydown',e=>{
     focusBody(order[+e.key-1].id);
   }
   if((e.key==='e'||e.key==='E')&&LAYER===0&&land&&land.mode==='surface'){cycleCam();return;}
+  if((e.key==='x'||e.key==='X')&&LAYER===2&&!land){deepScan();return;}
   if((e.key==='x'||e.key==='X')&&LAYER===0&&land&&land.id==='earth'&&(land.mode==='globe'||land.mode==='surface')){
     land.mapView=!land.mapView;
     if(land.mapView){
