@@ -1856,11 +1856,20 @@ const RARE={
   ceres:{yaw:3.3,spr:'dawn',name:'黎明号轨道',desc:'黎明号揭开谷神星亮斑之谜：那是碳酸钠卤水沉积——主流假说认为它们来自地下咸水储层的渗出。'}
 };
 const BRIEF_FROM={
+  io:'木卫一火山监测站',europa:'冰下海洋研究组',ganymede:'JUICE 中继站',callisto:'远征前哨',
+  titan:'惠更斯纪念站','ex-proxib':'比邻星 b 前哨','ex-trappe':'TRAPPIST 观测队',
   moon:'月面指挥部',earth:'轨道气象长',mars:'轨道器中继台',venus:'浮标中继',mercury:'深空网络',
   jupiter:'浮空观测站',saturn:'环系观测长',uranus:'外行星站',neptune:'外行星站',sun:'日震观测台',
   pluto:'柯伊伯前哨',ceres:'谷神星中继',eris:'柯伊伯前哨',haumea:'柯伊伯前哨',makemake:'柯伊伯前哨',sedna:'深空前哨'
 };
 const LAND_BRIEF={
+  io:'木卫一的火山羽流高度活跃。着陆器已加固隔热层——采集硫磺样本，别在喷发点附近停留。',
+  europa:'冰壳之下是全球海洋。钻探暂缓——采集表面冰样与裂纹边缘的卤水结晶。',
+  ganymede:'这里的地磁场会干扰仪器。采集风化层样本，标记沟槽地形的变化。',
+  callisto:'四十亿年的陨坑记录层层相叠。采集原始冰样——每一层都是一段太阳系历史。',
+  titan:'舱外零下 179 度，甲烷雨正落。采集烃湖蒸发残留——这是地球上没有的化学。',
+  'ex-proxib':'晨昏圈的风把昼面的热送到夜面。微生物垫就在浅水池里——采样时别踩到它们。',
+  'ex-trappe':'冰缝间的荧光海随呼吸明灭。采集冰壳与大气样本——研究组等这条数据等了十年。',
   asia:'东亚观测站收到季风预警。沿梯田走向采集三份水稻土样，校准气象模型。',
   europe:'阿尔卑斯冰川监测站报告：雪线逐年上升。采集高峰冰样与针叶林对照样本。',
   africa:'稀树草原的旱季结束了。象群正在迁徙——采集草原土样，别惊扰它们。',
@@ -3471,7 +3480,7 @@ function enterContinent(c){
   const cfg=CONTINENT_BY_ID[c.id];
   scaleFlash=0.85;
   $('land-title').textContent=c.name+' · 地表';
-  $('land-brief').textContent=LAND_BRIEF[c.id]||'';
+  $('land-brief').textContent=LAND_BRIEF[c.id]||c.brief||'';
   $('land-from').textContent='收到来自 '+(BRIEF_FROM[c.id]||'地表观测站')+' 的讯息';
   renderLandTasks();
   tone(659,0.15,'sine',0.05);tone(784,0.2,'sine',0.05,0.12);
@@ -5729,6 +5738,10 @@ function renderCampaign(){
   const el=document.getElementById('campaign');
   if(!el)return;
   if(c9.step>=CAMPAIGN.length){el.style.display='none';return;}
+  if(c9.step>=CAMPAIGN.length-1){
+    el.textContent='巡天任务 完成 ✓ · 完整航程档案已收录——旅程由你继续书写';
+    return;
+  }
   el.textContent='巡天任务 '+c9.step+'/'+CAMPAIGN.length+'：'+CAMPAIGN[c9.step].t+'——'+CAMPAIGN[c9.step].x;
 }
 function warpTo(st){                            // 跃迁引擎：飞向目标恒星
