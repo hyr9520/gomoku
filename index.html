@@ -799,17 +799,21 @@
       <svg width="11" height="11" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.4"><path d="M1 1l8 8M9 1L1 9"/></svg>
     </button>
     <h2>关于巡天</h2>
-    <p class="modal-sub">SOLAR ATLAS · 完全离线运行的太阳系互动图鉴</p>
+    <p class="modal-sub">SOLAR ATLAS · 完全离线运行的太阳系与星际互动图鉴</p>
     <p style="color:#C6D2E8;font-size:14px">
       本页以 Canvas 实时演算太阳系八大行星与冥王星的公转方位：行星黄经取 J2000 历元平黄经，
       按 NASA 数据表中的公转周期外推，打开页面时行星的相对方位与真实天空大致相符（匀速圆轨道近似）。
       月球沿 27.3 天周期绕地球运转，哈雷彗星沿偏心率 0.967 的椭圆逆行，彗尾背向太阳；
       行星明暗面按太阳方位渲染。全部数据来自 NASA NSSDCA 行星数据表（2025-03 版）。
       行星贴图来自 Solar System Scope Textures（CC BY 4.0，基于 NASA 影像绘制，经缩放/重编码修改）。
-      页面无任何外部资源，可离线保存运行。
+      星际邻域收录 19 颗真实恒星：比邻星、TRAPPIST-1 与格利泽 581 三个恒星系统
+      可深入探索，13 颗系外行星按真实周期运行，两颗宜居世界可以着陆。
+      本页以 Canvas 实时演算，页面无任何外部资源，可离线保存运行。
     </p>
     <p style="color:var(--dim);font-size:12.5px;margin-top:14px;line-height:2">
-      空格 播放/暂停 · 1–8 行星 / 9 冥王星 · 方向键平移 · +/− 缩放 · M 测距 · C 截图 · T 回到今天 · Esc 关闭
+      空格 播放/暂停 · 1–8 行星 / 9 冥王星 · 方向键平移 · 滚轮缩放 · M 测距 · C 截图 · T 回到今天 · Esc 关闭<br>
+      地表：拖动环视（上下拖抬头看天）· 空格 扫描 · E 机位 · G 观日出 · C 拍照<br>
+      星际：X 深空扫描 · N 跃迁引擎 · 地球选点态 X 详细地图
     </p>
   </div>
 </div>
@@ -3920,6 +3924,14 @@ function renderEggList(){
   el.innerHTML=h;
 }
 function openArtModal(a){                      // 发现故事档案
+  if(a.id==='stromato'){
+    try{
+      if(!localStorage.getItem('atlas-k7reply')){
+        localStorage.setItem('atlas-k7reply','1');
+        setTimeout(()=>toast('K-7 回信：「看到了吗？那就是开始。三十五亿年前我们也是一池子的化学——别急着下结论，继续看。」'),3500);
+      }
+    }catch(e){}
+  }
   if(a.art&&ART_IMG[a.art]&&ART_IMG[a.art].complete){
     const im2=document.getElementById('art-scene');
     if(im2){im2.src=ART_IMG[a.art].src;im2.style.display='block';}
